@@ -100,6 +100,8 @@ details[open]>summary::after{transform:rotate(-135deg)}
 .parea{fill:var(--route);fill-opacity:.18}.pline{fill:none;stroke:var(--route);stroke-width:2;vector-effect:non-scaling-stroke;stroke-linejoin:round}
 .pst{stroke:var(--mute);stroke-dasharray:2 3;stroke-width:1}.prof text{font-size:9px;fill:var(--mute)}.pcur{stroke:var(--ink);stroke-width:1}
 .proftip{min-height:20px}
+.tabs{display:flex;gap:4px;margin:14px 0 6px;padding:3px;background:var(--bg);border-radius:12px}.tabs button{flex:1;min-height:34px;padding:4px 6px;border:0;background:transparent;font-size:13px;border-radius:9px}.tabs button:hover{background:var(--soft)}.tabs button[aria-selected=true]{background:var(--panel);box-shadow:0 1px 3px rgba(20,40,59,.2);font-weight:600}
+[data-pane]>details:first-child{margin-top:4px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 /* минимален Leaflet CSS */
 .leaflet-pane,.leaflet-tile,.leaflet-marker-icon,.leaflet-tile-container,.leaflet-pane>svg,.leaflet-layer{position:absolute;left:0;top:0}
@@ -153,9 +155,17 @@ details[open]>summary::after{transform:rotate(-135deg)}
       <div class="row"><button class="pri" id="bSave">Запази</button><button id="bDiscard">Отхвърли</button></div>
     </div>
     <div class="hint hidden" id="pend"></div>
+    <div class="tabs" role="tablist" aria-label="Раздели">
+      <button type="button" role="tab" data-tab="routes" aria-selected="false">Маршрути <span id="rcount"></span></button>
+      <button type="button" role="tab" data-tab="places" aria-selected="false">Планини и паркове</button>
+      <button type="button" role="tab" data-tab="set" aria-selected="false">Настройки</button>
+    </div>
+    <section data-pane="routes" class="hidden">
     <div class="row flt"><select id="fColor" aria-label="Цвят на маршрутите"><option value="one">Един цвят</option><option value="year">Цвят по година</option><option value="mt">Цвят по планина</option></select><select id="fYear" aria-label="Година"></select><select id="fMt2" aria-label="Планина"></select></div>
     <div class="legend" id="legend"></div>
     <div id="list"></div>
+    </section>
+    <section data-pane="places" class="hidden">
     <details open><summary>Планини – колко е изминато</summary>
       <div id="mlist" style="margin-top:8px"></div>
       <p class="note" id="bstat" style="margin-top:0">Границите са схематични.</p>
@@ -165,6 +175,8 @@ details[open]>summary::after{transform:rotate(-135deg)}
       <div id="pklist" style="margin-top:8px"></div>
       <p class="note" style="margin-top:0">НП е национален парк, ПП е природен парк. Паркът е посетен, ако някой от маршрутите ти минава през него. Процентът е делът от площта на парка в коридор около 3 км от маршрутите.</p>
     </details>
+    </section>
+    <section data-pane="set" class="hidden">
     <details class="lay"><summary>Фон и слоеве</summary>
     <label>Фон на картата<select id="bmap"><option value="topo">Планински (топографски)</option><option value="esri">Релеф и пътища (Esri)</option><option value="sat">Сателит</option><option value="osm">Улици (OSM)</option></select></label>
     <label class="meta" style="display:flex;gap:6px;align-items:center;margin:8px 0 2px"><input type="checkbox" id="trl" checked style="width:auto">Маркирани пътеки на картата</label>
@@ -185,7 +197,8 @@ details[open]>summary::after{transform:rotate(-135deg)}
       <div class="meta" id="dmsg"></div>
     </details>
     <p class="note">Контурът на България е схематичен. Търсачката (Photon) и маршрутите (BRouter) са безплатни обществени услуги и може да се забавят. Записаните маршрути се четат от файла routes.geojson в хранилището; новите стоят в браузъра, докато не ги добавиш там. Фонови карти: © OpenStreetMap, OpenTopoMap, Esri; маркирани пътеки: Waymarked Trails.</p>
-      </div>
+      </section>
+    </div>
   </aside>
 </main>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
@@ -221,7 +234,13 @@ setTimeout(()=>{map.invalidateSize();map.fitBounds(bgLayer.getBounds(),fo(true))
 
 const rad=x=>x*Math.PI/180;
 function km(c){let d=0;for(let i=1;i<c.length;i++){const a=c[i-1],b=c[i],dl=rad(b[0]-a[0]),dn=rad(b[1]-a[1]);const h=Math.sin(dl/2)**2+Math.cos(rad(a[0]))*Math.cos(rad(b[0]))*Math.sin(dn/2)**2;d+=12742*Math.asin(Math.sqrt(h))}return d}
-function nearestMt(c){const m=c[Math.floor(c.length/2)];let best=null,bd=1e9;MT.forEach(x=>{const d=(x[1]-m[0])**2+(x[2]-m[1])**2;if(d<bd){bd=d;best=x[0]}});return best}
+function nearestMt(c){
+  const cnt={},st=Math.max(1,Math.floor(c.length/200));
+  for(let i=0;i<c.length;i+=st){const q=c[i];for(const m of MP)if(inAny(q[0],q[1],ringsOf(m)))cnt[m.n]=(cnt[m.n]||0)+1}
+  let best=null,bn=0;for(const n in cnt)if(cnt[n]>bn){bn=cnt[n];best=n}
+  if(best)return best;
+  const m=c[Math.floor(c.length/2)];let bd=1e9;MT.forEach(x=>{const d=(x[1]-m[0])**2+(x[2]-m[1])**2;if(d<bd){bd=d;best=x[0]}});return best;
+}
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 $('#fMt').innerHTML=MT.map(m=>`<option>${m[0]}</option>`).join('')+'<option>Друга</option>';
 
@@ -233,7 +252,7 @@ function drawRoute(r){
 }
 function style(){Object.keys(layers).forEach(id=>{const on=id===sel;const W=lineW();layers[id].setStyle({weight:on?W+2:W});if(casings[id])casings[id].setStyle({weight:on?W+cx()+3:W+cx()});const el=layers[id].getElement();if(el){el.classList.toggle('sel',on);const r=routes.find(x=>x.id===id),vis=!r||visible(r);el.style.stroke=on||!r?'':colorFor(r);el.style.display=vis?'':'none';const ce=casings[id]&&casings[id].getElement();if(ce)ce.style.display=vis?'':'none'}if(on)layers[id].bringToFront()})}
 function select(id){
-  sel=id;confirmDel=null;style();render();if(innerWidth<=760&&document.querySelector('aside').dataset.s==='peek')setSheet('mid');
+  sel=id;confirmDel=null;style();render();setTab('routes');if(innerWidth<=760&&document.querySelector('aside').dataset.s==='peek')setSheet('mid');
   const l=layers[id];if(l)map.fitBounds(l.getBounds(),{maxZoom:12,...fo(false)});
 }
 function render(){
@@ -241,7 +260,7 @@ function render(){
   $('#pend').classList.toggle('hidden',!pend);
   $('#pend').textContent=gh&&gh.tok?`Има ${pend} промени, които се записват в GitHub.`:`Има ${pend} промени, които още не са в хранилището. Отвори „Архив в GitHub“, копирай текста и го постави в routes.geojson.`;
   updateFilters();updateMt();showStops();const total=routes.reduce((s,r)=>s+km(r.coords),0);
-  $('#stats').innerHTML=routes.length?`<b>${routes.length}</b>${routes.length===1?'маршрут':'маршрута'}<b>${total.toFixed(0)}</b>км`:'Още няма маршрути';
+  $('#rcount').textContent=routes.length?'('+routes.length+')':'';$('#stats').innerHTML=routes.length?`<b>${routes.length}</b>${routes.length===1?'маршрут':'маршрута'}<b>${total.toFixed(0)}</b>км`:'Още няма маршрути';
   const sorted=routes.filter(visible).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
   $('#list').innerHTML=sorted.length?sorted.map(r=>{
     const d=r.date?new Date(r.date).toLocaleDateString('bg-BG'):'без дата';
@@ -706,6 +725,17 @@ $('#ghSave').onclick=()=>{
 };
 $('#ghNow').onclick=()=>pushArchive();
 $('#ghClear').onclick=()=>{gh=null;try{localStorage.removeItem('bggh')}catch(e){}ghMsg('Ключът е изтрит от този браузър.');render()};
+
+/* ---- раздели ---- */
+let curTab='';
+function setTab(t){
+  curTab=t;
+  document.querySelectorAll('[data-pane]').forEach(e=>e.classList.toggle('hidden',e.dataset.pane!==t));
+  document.querySelectorAll('.tabs [data-tab]').forEach(b=>b.setAttribute('aria-selected',b.dataset.tab===t?'true':'false'));
+  const a=document.querySelector('aside');
+  if(t&&a.dataset.s==='peek')setSheet(innerWidth<=760?'mid':'full');
+}
+document.querySelectorAll('.tabs [data-tab]').forEach(b=>b.onclick=()=>setTab(curTab===b.dataset.tab?'':b.dataset.tab));
 
 /* ---- панел ---- */
 const mob=()=>innerWidth<=760;
