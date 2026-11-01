@@ -46,6 +46,11 @@ details{margin-top:12px}summary{cursor:pointer;color:var(--mute);font-size:14px}
 .pr{display:flex;align-items:center;gap:6px;padding:3px 0}.pr span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.pr button{padding:1px 7px}
 .cs{stroke:#fff;fill:none;stroke-linecap:round;stroke-linejoin:round}
 #map.dim .leaflet-tile-pane{filter:saturate(.45) brightness(1.04) contrast(.92)}
+#map.nolab .mtl{display:none}
+.mtt{transform:translate(-50%,-50%);text-align:center;white-space:nowrap;font-weight:700;font-size:13px;line-height:1.15;color:#1f2d1b;text-shadow:0 0 3px #fff,0 0 3px #fff,0 0 6px #fff;pointer-events:none}
+.mtt small{display:block;font-weight:600;font-size:11px}
+.mt{fill:var(--acc);stroke:var(--acc);stroke-width:2;stroke-dasharray:6 5;stroke-opacity:.8}
+.bar{height:6px;border-radius:3px;background:var(--line);overflow:hidden;margin:2px 0 8px}.bar i{display:block;height:100%;background:var(--route)}
 /* минимален Leaflet CSS */
 .leaflet-pane,.leaflet-tile,.leaflet-marker-icon,.leaflet-tile-container,.leaflet-pane>svg,.leaflet-layer{position:absolute;left:0;top:0}
 .leaflet-container{overflow:hidden}
@@ -82,6 +87,7 @@ details{margin-top:12px}summary{cursor:pointer;color:var(--mute);font-size:14px}
     <label>Фон на картата<select id="bmap"><option value="topo">Планински (топографски)</option><option value="esri">Релеф и пътища (Esri)</option><option value="sat">Сателит</option><option value="osm">Улици (OSM)</option></select></label>
     <label class="meta" style="display:flex;gap:6px;align-items:center;margin:8px 0 2px"><input type="checkbox" id="trl" checked style="width:auto">Маркирани пътеки на картата</label>
     <label class="meta" style="display:flex;gap:6px;align-items:center;margin:2px 0 8px"><input type="checkbox" id="dim" checked style="width:auto">Приглушен фон – маршрутите изпъкват</label>
+    <label class="meta" style="display:flex;gap:6px;align-items:center;margin:2px 0 8px"><input type="checkbox" id="mtn" checked style="width:auto">Планините със схематични граници</label>
     <div id="idle">
       <div class="row"><button class="pri" id="bNew">＋ Нов маршрут</button><button id="bPlan">🧭 Планирай</button><label class="meta" style="margin:0;align-self:center"><input type="file" id="gpx" accept=".gpx" class="hidden"><button class="sm" id="bGpx" type="button">Качи GPX</button></label></div>
     </div>
@@ -99,6 +105,10 @@ details{margin-top:12px}summary{cursor:pointer;color:var(--mute);font-size:14px}
     </div>
     <div class="hint hidden" id="pend"></div>
     <div id="list"></div>
+    <details open><summary>Планини – колко е изминато</summary>
+      <div id="mlist" style="margin-top:8px"></div>
+      <p class="note" style="margin-top:0">Границите са схематични. Обхватът е делът от площта на планината, който е в коридор около 3 км от маршрутите ти.</p>
+    </details>
     <details><summary>Данни за архива (routes.geojson)</summary>
       <textarea id="data" style="min-height:90px;margin-top:8px" placeholder="Тук се показва GeoJSON с маршрутите ти"></textarea>
       <div class="row"><button class="sm" id="bExp">Покажи данните</button><button class="sm" id="bCopy">Копирай</button><button class="sm" id="bImp">Зареди от текста</button></div>
@@ -118,7 +128,7 @@ const ld=k=>{try{return JSON.parse(localStorage.getItem(k)||'[]')}catch(e){retur
 const save=()=>{try{localStorage.setItem('bgdrafts',JSON.stringify(routes.filter(r=>!fileIds.has(r.id))));localStorage.setItem('bgdeleted',JSON.stringify(deleted));localStorage.setItem('bgedits',JSON.stringify(routes.filter(r=>fileIds.has(r.id)&&r._mod)))}catch(e){}};
 
 const map=L.map('map',{zoomControl:false,zoomAnimation:false,fadeAnimation:false,markerZoomAnimation:false,minZoom:6,attributionControl:false});
-map.createPane('bgp').style.zIndex=150;map.createPane('trp').style.zIndex=250;map.createPane('csp').style.zIndex=390;
+map.createPane('bgp').style.zIndex=150;map.createPane('trp').style.zIndex=250;map.createPane('csp').style.zIndex=390;map.createPane('mtp').style.zIndex=300;
 const bgLayer=L.polygon(BG,{pane:'bgp',className:'bg',interactive:false}).addTo(map);
 map.fitBounds(bgLayer.getBounds());
 const BASE={
@@ -133,7 +143,6 @@ $('#map').classList.add('dim');
 $('#dim').onchange=e=>$('#map').classList.toggle('dim',e.target.checked);
 const trails=L.tileLayer('https://tile.waymarkedtrails.org/hiking/{z}/{x}/{y}.png',{maxZoom:18,opacity:.85,pane:'trp'}).addTo(map);
 $('#trl').onchange=e=>e.target.checked?trails.addTo(map):map.removeLayer(trails);
-MT.forEach(m=>L.marker([m[1],m[2]],{icon:L.divIcon({className:'ml',html:'▲ '+m[0],iconSize:null}),interactive:false,keyboard:false}).addTo(map));
 const prev=L.layerGroup().addTo(map);
 $('#zi').onclick=()=>map.zoomIn();$('#zo').onclick=()=>map.zoomOut();
 addEventListener('resize',()=>map.invalidateSize());
@@ -146,12 +155,12 @@ const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',
 $('#fMt').innerHTML=MT.map(m=>`<option>${m[0]}</option>`).join('')+'<option>Друга</option>';
 
 function drawRoute(r){
-  casings[r.id]=L.polyline(r.coords,{pane:'csp',className:'cs',weight:9,opacity:.95,interactive:false}).addTo(map);
-  const l=L.polyline(r.coords,{className:'rt',weight:5,opacity:1}).addTo(map);
+  casings[r.id]=L.polyline(r.coords,{pane:'csp',className:'cs',weight:lineW()+cx(),opacity:.95,interactive:false}).addTo(map);
+  const l=L.polyline(r.coords,{className:'rt',weight:lineW(),opacity:1}).addTo(map);
   l.on('click',()=>{if(!drawing&&!pick)select(r.id)});
   layers[r.id]=l;
 }
-function style(){Object.keys(layers).forEach(id=>{const on=id===sel;layers[id].setStyle({weight:on?8:5});if(casings[id])casings[id].setStyle({weight:on?12:9});const el=layers[id].getElement();if(el)el.classList.toggle('sel',on);if(on)layers[id].bringToFront()})}
+function style(){Object.keys(layers).forEach(id=>{const on=id===sel;const W=lineW();layers[id].setStyle({weight:on?W+2:W});if(casings[id])casings[id].setStyle({weight:on?W+cx()+3:W+cx()});const el=layers[id].getElement();if(el)el.classList.toggle('sel',on);if(on)layers[id].bringToFront()})}
 function select(id){
   sel=id;confirmDel=null;style();render();
   const l=layers[id];if(l)map.fitBounds(l.getBounds(),{maxZoom:12,padding:[40,40]});
@@ -160,7 +169,7 @@ function render(){
   const pend=routes.filter(r=>!fileIds.has(r.id)).length+deleted.length+routes.filter(r=>r._mod).length;
   $('#pend').classList.toggle('hidden',!pend);
   $('#pend').textContent=`Има ${pend} промени, които още не са в хранилището. Отвори „Данни“, копирай текста и го постави в routes.geojson.`;
-  const total=routes.reduce((s,r)=>s+km(r.coords),0);
+  updateMt();const total=routes.reduce((s,r)=>s+km(r.coords),0);
   $('#stats').textContent=routes.length?`${routes.length} маршрута · ${total.toFixed(0)} км`:'Още няма маршрути';
   const sorted=[...routes].sort((a,b)=>(b.date||'').localeCompare(a.date||''));
   $('#list').innerHTML=sorted.length?sorted.map(r=>{
@@ -242,6 +251,49 @@ $('#bImp').onclick=()=>{
     save();render();$('#dmsg').textContent=`Заредени маршрути: ${n}.`;
   }catch(e){$('#dmsg').textContent='Текстът не е валиден GeoJSON.'}
 };
+
+/* ---- линии и планини ---- */
+const lineW=()=>{const z=map.getZoom();return z<=7?2:z<=8?2.5:z<=9?3:z<=10?4:5};
+const cx=()=>map.getZoom()<=9?2:4;
+function zoomUI(){$('#map').classList.toggle('nolab',map.getZoom()>=11);style()}
+map.on('zoomend',zoomUI);
+const MP=[
+ {n:'Стара планина',pg:[[43.55,22.65],[43.35,23.2],[43.2,23.8],[43.05,24.4],[42.95,25.0],[42.97,25.5],[43.0,26.1],[42.98,26.7],[42.9,27.3],[42.85,27.9],[42.6,27.9],[42.55,27.3],[42.55,26.7],[42.58,26.1],[42.6,25.5],[42.6,24.9],[42.62,24.4],[42.75,23.8],[42.9,23.2],[43.15,22.7]]},
+ {n:'Рила',pg:[[42.28,23.18],[42.34,23.6],[42.26,23.98],[42.12,24.05],[41.99,23.9],[41.97,23.55],[42.0,23.25],[42.12,23.12]]},
+ {n:'Пирин',pg:[[41.9,23.38],[41.88,23.58],[41.72,23.64],[41.55,23.55],[41.4,23.48],[41.42,23.3],[41.62,23.3],[41.78,23.26]]},
+ {n:'Витоша',pg:[[42.64,23.2],[42.62,23.38],[42.52,23.42],[42.45,23.33],[42.46,23.18],[42.55,23.14]]},
+ {n:'Родопи',pg:[[42.0,24.1],[41.99,24.9],[41.9,25.4],[41.7,25.9],[41.45,26.15],[41.3,25.7],[41.3,25.0],[41.45,24.4],[41.55,23.85],[41.8,23.8]]},
+ {n:'Осогово',pg:[[42.28,22.55],[42.22,22.75],[42.05,22.75],[41.98,22.55],[42.06,22.38]]},
+ {n:'Беласица',pg:[[41.42,22.95],[41.42,23.3],[41.37,23.33],[41.35,23.0]]},
+ {n:'Странджа',pg:[[42.3,27.4],[42.3,27.9],[42.0,28.0],[41.98,27.6],[42.05,27.3]]},
+ {n:'Средна гора',pg:[[42.55,23.6],[42.6,24.4],[42.58,25.1],[42.52,25.8],[42.42,25.8],[42.38,25.0],[42.4,24.2],[42.35,23.7]]}
+];
+const DLA=0.02,DLN=0.027,mtG=L.layerGroup().addTo(map);
+const inPoly=(la,ln,pg)=>{let c=false;for(let i=0,j=pg.length-1;i<pg.length;j=i++){const a=pg[i],b=pg[j];if((a[0]>la)!==(b[0]>la)&&ln<(b[1]-a[1])*(la-a[0])/(b[0]-a[0])+a[1])c=!c}return c};
+MP.forEach(m=>{
+  const la=m.pg.map(p=>p[0]),ln=m.pg.map(p=>p[1]);m.cells=[];
+  for(let i=Math.floor(Math.min(...la)/DLA);i<=Math.ceil(Math.max(...la)/DLA);i++)for(let j=Math.floor(Math.min(...ln)/DLN);j<=Math.ceil(Math.max(...ln)/DLN);j++)if(inPoly(i*DLA,j*DLN,m.pg))m.cells.push(i+','+j);
+});
+const pc=x=>x>0&&x<.01?'&lt;1%':Math.round(x*100)+'%';
+function updateMt(){
+  const cov=new Set();
+  routes.forEach(r=>{for(let i=1;i<r.coords.length;i++){
+    const a=r.coords[i-1],b=r.coords[i],n=Math.max(1,Math.ceil(km([a,b])/0.8));
+    for(let k=0;k<=n;k++){const ci=Math.round((a[0]+(b[0]-a[0])*k/n)/DLA),cj=Math.round((a[1]+(b[1]-a[1])*k/n)/DLN);
+      for(let di=-1;di<=1;di++)for(let dj=-1;dj<=1;dj++)cov.add((ci+di)+','+(cj+dj))}}});
+  mtG.clearLayers();
+  const rows=MP.map(m=>{
+    const pct=m.cells.length?m.cells.filter(k=>cov.has(k)).length/m.cells.length:0;
+    let d=0;routes.forEach(r=>{for(let i=1;i<r.coords.length;i++){const a=r.coords[i-1],b=r.coords[i];if(inPoly((a[0]+b[0])/2,(a[1]+b[1])/2,m.pg))d+=km([a,b])}});
+    L.polygon(m.pg,{pane:'mtp',className:'mt',fillOpacity:.06+Math.min(.5,pct*2.5),interactive:false}).addTo(mtG);
+    const c=[m.pg.reduce((t,p)=>t+p[0],0)/m.pg.length,m.pg.reduce((t,p)=>t+p[1],0)/m.pg.length];
+    L.marker(c,{icon:L.divIcon({className:'mtl',html:`<div class="mtt">${m.n}<small>${d>0?d.toFixed(0)+' км · '+pc(pct):'още не е изминавана'}</small></div>`,iconSize:null}),interactive:false,keyboard:false}).addTo(mtG);
+    return `<div><b>${m.n}</b> <span class="meta">${d.toFixed(0)} км · ${pc(pct)}</span><div class="bar"><i style="width:${Math.max(pct>0?2:0,Math.round(pct*100))}%"></i></div></div>`;
+  });
+  $('#mlist').innerHTML=rows.join('');
+}
+$('#mtn').onchange=e=>e.target.checked?mtG.addTo(map):map.removeLayer(mtG);
+zoomUI();
 
 /* ---- търсачка и планиране ---- */
 let hand=false,pick=false,P=[],planning=false,alts=[],selAlt=0,qseq=0,qt=null,hits=[],rseq=0,editId=null,planEditId=null,pendingPlan=null;
