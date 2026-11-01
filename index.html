@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Моите планински маршрути</title>
 <style>
-:root{--bg:#f6f4ee;--panel:#fffdf8;--ink:#23301f;--mute:#6b7466;--line:#d9d6c8;--acc:#2f6b3a;--accink:#fff;--land:#e1e9d0;--sea:#dde7ea;--route:#c2410c;--sel:#7c2d12;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#141913;--panel:#1c231a;--ink:#e6ebdf;--mute:#9aa593;--line:#34402f;--acc:#6fb27c;--accink:#10170f;--land:#27331f;--sea:#18242a;--route:#fb923c;--sel:#fdba74}}
-:root[data-theme="dark"]{--bg:#141913;--panel:#1c231a;--ink:#e6ebdf;--mute:#9aa593;--line:#34402f;--acc:#6fb27c;--accink:#10170f;--land:#27331f;--sea:#18242a;--route:#fb923c;--sel:#fdba74}
+:root{--bg:#f6f4ee;--panel:#fffdf8;--ink:#23301f;--mute:#6b7466;--line:#d9d6c8;--acc:#2f6b3a;--accink:#fff;--land:#e1e9d0;--sea:#dde7ea;--route:#c026d3;--sel:#86198f;--alt:#2563eb;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#141913;--panel:#1c231a;--ink:#e6ebdf;--mute:#9aa593;--line:#34402f;--acc:#6fb27c;--accink:#10170f;--land:#27331f;--sea:#18242a;--route:#e879f9;--sel:#f5d0fe;--alt:#60a5fa}}
+:root[data-theme="dark"]{--bg:#141913;--panel:#1c231a;--ink:#e6ebdf;--mute:#9aa593;--line:#34402f;--acc:#6fb27c;--accink:#10170f;--land:#27331f;--sea:#18242a;--route:#e879f9;--sel:#f5d0fe;--alt:#60a5fa}
 *{box-sizing:border-box}
 html,body{height:100%;margin:0}
 body{display:flex;flex-direction:column;background:var(--bg);color:var(--ink);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
@@ -41,9 +41,11 @@ details{margin-top:12px}summary{cursor:pointer;color:var(--mute);font-size:14px}
 #res{position:absolute;left:0;right:0;top:100%;z-index:1500;background:var(--panel);border:1px solid var(--line);border-radius:8px;max-height:260px;overflow:auto;margin-top:2px}
 #res div{padding:7px 10px;cursor:pointer;border-bottom:1px solid var(--line)}#res div:last-child{border:0}#res div:hover{background:var(--bg)}
 .pin{display:grid;place-items:center;width:24px;height:24px;margin:-12px 0 0 -12px;border-radius:50%;background:var(--acc);color:var(--accink);font-weight:700;font-size:13px;border:2px solid var(--panel)}
-.alt{stroke:var(--acc);fill:none;stroke-linecap:round;stroke-linejoin:round}
+.alt{stroke:var(--alt);fill:none;stroke-linecap:round;stroke-linejoin:round}
 .zoom button.on{background:var(--acc);color:var(--accink);border-color:var(--acc)}
 .pr{display:flex;align-items:center;gap:6px;padding:3px 0}.pr span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.pr button{padding:1px 7px}
+.cs{stroke:#fff;fill:none;stroke-linecap:round;stroke-linejoin:round}
+#map.dim .leaflet-tile-pane{filter:saturate(.45) brightness(1.04) contrast(.92)}
 /* минимален Leaflet CSS */
 .leaflet-pane,.leaflet-tile,.leaflet-marker-icon,.leaflet-tile-container,.leaflet-pane>svg,.leaflet-layer{position:absolute;left:0;top:0}
 .leaflet-container{overflow:hidden}
@@ -77,7 +79,9 @@ details{margin-top:12px}summary{cursor:pointer;color:var(--mute);font-size:14px}
       <div class="row"><button class="sm" id="pPick">📍 Добави от картата</button><button class="sm" id="pSwap">⇅ Обърни</button><button class="sm" id="pClear">Изчисти</button></div>
       <div id="pout"></div>
     </div>
-    <label class="meta" style="display:flex;gap:6px;align-items:center;margin:8px 0"><input type="checkbox" id="trl" checked style="width:auto">Маркирани пътеки на картата</label>
+    <label>Фон на картата<select id="bmap"><option value="topo">Планински (топографски)</option><option value="esri">Релеф и пътища (Esri)</option><option value="sat">Сателит</option><option value="osm">Улици (OSM)</option></select></label>
+    <label class="meta" style="display:flex;gap:6px;align-items:center;margin:8px 0 2px"><input type="checkbox" id="trl" checked style="width:auto">Маркирани пътеки на картата</label>
+    <label class="meta" style="display:flex;gap:6px;align-items:center;margin:2px 0 8px"><input type="checkbox" id="dim" checked style="width:auto">Приглушен фон – маршрутите изпъкват</label>
     <div id="idle">
       <div class="row"><button class="pri" id="bNew">＋ Нов маршрут</button><button id="bPlan">🧭 Планирай</button><label class="meta" style="margin:0;align-self:center"><input type="file" id="gpx" accept=".gpx" class="hidden"><button class="sm" id="bGpx" type="button">Качи GPX</button></label></div>
     </div>
@@ -100,7 +104,7 @@ details{margin-top:12px}summary{cursor:pointer;color:var(--mute);font-size:14px}
       <div class="row"><button class="sm" id="bExp">Покажи данните</button><button class="sm" id="bCopy">Копирай</button><button class="sm" id="bImp">Зареди от текста</button></div>
       <div class="meta" id="dmsg"></div>
     </details>
-    <p class="note">Контурът на България е схематичен. Търсачката (Photon) и маршрутите (BRouter) са безплатни обществени услуги и може да се забавят. Записаните маршрути се четат от файла routes.geojson в хранилището; новите стоят в браузъра, докато не ги добавиш там. Топографският фон (OpenTopoMap, © OpenStreetMap) се показва там, където страницата има право да го зареди.</p>
+    <p class="note">Контурът на България е схематичен. Търсачката (Photon) и маршрутите (BRouter) са безплатни обществени услуги и може да се забавят. Записаните маршрути се четат от файла routes.geojson в хранилището; новите стоят в браузъра, докато не ги добавиш там. Фонови карти: © OpenStreetMap, OpenTopoMap, Esri; маркирани пътеки: Waymarked Trails.</p>
   </aside>
   <div id="map"><div class="zoom"><button id="zi" aria-label="Приближи">+</button><button id="zo" aria-label="Отдалечи">−</button><button id="zh" aria-label="Ръчка: движи картата без да слагаш точки" title="Ръчка: движи картата без да слагаш точки">✋</button></div></div>
 </main>
@@ -109,16 +113,25 @@ details{margin-top:12px}summary{cursor:pointer;color:var(--mute);font-size:14px}
 const $=s=>document.querySelector(s);
 const BG=[[44.21,22.67],[44.0,22.87],[43.83,23.25],[43.75,23.7],[43.73,24.2],[43.7,24.9],[43.62,25.35],[43.85,25.95],[44.05,26.6],[44.12,27.27],[43.9,28.0],[43.68,28.6],[43.55,28.6],[43.37,28.48],[43.2,27.95],[42.82,27.88],[42.66,27.73],[42.5,27.47],[42.42,27.7],[42.17,27.85],[41.98,28.03],[42.0,27.5],[41.95,27.0],[41.75,26.6],[41.72,26.35],[41.53,26.12],[41.35,26.1],[41.25,25.7],[41.35,25.15],[41.5,24.7],[41.55,24.15],[41.5,23.6],[41.4,23.35],[41.35,23.1],[41.4,22.95],[41.7,22.9],[42.0,22.9],[42.33,22.36],[42.55,22.45],[42.75,22.5],[43.0,22.9],[43.3,22.65],[43.55,22.5],[43.9,22.55]];
 const MT=[["Стара планина",42.719,24.918],["Рила",42.179,23.585],["Пирин",41.767,23.399],["Витоша",42.563,23.276],["Родопи",41.667,24.533],["Осогово",42.07,22.52],["Беласица",41.37,23.15],["Странджа",42.05,27.55],["Средна гора",42.6,24.4]];
-let routes=[],layers={},drawing=false,pts=[],sel=null,confirmDel=null,fileIds=new Set(),deleted=[];
+let routes=[],layers={},casings={},drawing=false,pts=[],sel=null,confirmDel=null,fileIds=new Set(),deleted=[];
 const ld=k=>{try{return JSON.parse(localStorage.getItem(k)||'[]')}catch(e){return []}};
 const save=()=>{try{localStorage.setItem('bgdrafts',JSON.stringify(routes.filter(r=>!fileIds.has(r.id))));localStorage.setItem('bgdeleted',JSON.stringify(deleted));localStorage.setItem('bgedits',JSON.stringify(routes.filter(r=>fileIds.has(r.id)&&r._mod)))}catch(e){}};
 
 const map=L.map('map',{zoomControl:false,zoomAnimation:false,fadeAnimation:false,markerZoomAnimation:false,minZoom:6,attributionControl:false});
-map.createPane('bgp').style.zIndex=150;
+map.createPane('bgp').style.zIndex=150;map.createPane('trp').style.zIndex=250;map.createPane('csp').style.zIndex=390;
 const bgLayer=L.polygon(BG,{pane:'bgp',className:'bg',interactive:false}).addTo(map);
 map.fitBounds(bgLayer.getBounds());
-L.tileLayer('https://tile.opentopomap.org/{z}/{x}/{y}.png',{maxZoom:17}).addTo(map);
-const trails=L.tileLayer('https://tile.waymarkedtrails.org/hiking/{z}/{x}/{y}.png',{maxZoom:18,opacity:.85}).addTo(map);
+const BASE={
+  topo:L.tileLayer('https://tile.opentopomap.org/{z}/{x}/{y}.png',{maxZoom:17}),
+  esri:L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}',{maxZoom:18}),
+  sat:L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:18}),
+  osm:L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19})
+};
+let base=BASE.topo.addTo(map);
+$('#bmap').onchange=e=>{map.removeLayer(base);base=BASE[e.target.value].addTo(map)};
+$('#map').classList.add('dim');
+$('#dim').onchange=e=>$('#map').classList.toggle('dim',e.target.checked);
+const trails=L.tileLayer('https://tile.waymarkedtrails.org/hiking/{z}/{x}/{y}.png',{maxZoom:18,opacity:.85,pane:'trp'}).addTo(map);
 $('#trl').onchange=e=>e.target.checked?trails.addTo(map):map.removeLayer(trails);
 MT.forEach(m=>L.marker([m[1],m[2]],{icon:L.divIcon({className:'ml',html:'▲ '+m[0],iconSize:null}),interactive:false,keyboard:false}).addTo(map));
 const prev=L.layerGroup().addTo(map);
@@ -133,11 +146,12 @@ const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',
 $('#fMt').innerHTML=MT.map(m=>`<option>${m[0]}</option>`).join('')+'<option>Друга</option>';
 
 function drawRoute(r){
-  const l=L.polyline(r.coords,{className:'rt',weight:4,opacity:.9}).addTo(map);
+  casings[r.id]=L.polyline(r.coords,{pane:'csp',className:'cs',weight:9,opacity:.95,interactive:false}).addTo(map);
+  const l=L.polyline(r.coords,{className:'rt',weight:5,opacity:1}).addTo(map);
   l.on('click',()=>{if(!drawing&&!pick)select(r.id)});
   layers[r.id]=l;
 }
-function style(){Object.keys(layers).forEach(id=>{const on=id===sel;layers[id].setStyle({weight:on?7:4});const el=layers[id].getElement();if(el)el.classList.toggle('sel',on);if(on)layers[id].bringToFront()})}
+function style(){Object.keys(layers).forEach(id=>{const on=id===sel;layers[id].setStyle({weight:on?8:5});if(casings[id])casings[id].setStyle({weight:on?12:9});const el=layers[id].getElement();if(el)el.classList.toggle('sel',on);if(on)layers[id].bringToFront()})}
 function select(id){
   sel=id;confirmDel=null;style();render();
   const l=layers[id];if(l)map.fitBounds(l.getBounds(),{maxZoom:12,padding:[40,40]});
@@ -159,7 +173,7 @@ function render(){
 $('#list').onclick=e=>{
   const del=e.target.closest('[data-del]');
   if(del){const id=del.dataset.del;
-    if(confirmDel===id){map.removeLayer(layers[id]);delete layers[id];routes=routes.filter(r=>r.id!==id);if(fileIds.has(id)&&!deleted.includes(id))deleted.push(id);sel=null;confirmDel=null;save()}else confirmDel=id;
+    if(confirmDel===id){map.removeLayer(layers[id]);map.removeLayer(casings[id]);delete layers[id];delete casings[id];routes=routes.filter(r=>r.id!==id);if(fileIds.has(id)&&!deleted.includes(id))deleted.push(id);sel=null;confirmDel=null;save()}else confirmDel=id;
     render();return}
   const ed=e.target.closest('[data-edit]');if(ed){editMeta(ed.dataset.edit);return}
   const ge=e.target.closest('[data-geo]');if(ge){editGeo(ge.dataset.geo);return}
@@ -187,7 +201,7 @@ $('#bDiscard').onclick=()=>{pts=[];editId=null;pendingPlan=null;resetOp();render
 $('#bSave').onclick=()=>{
   const f={name:$('#fName').value.trim(),mountain:$('#fMt').value,date:$('#fDate').value,notes:$('#fNotes').value.trim()};
   let r=editId?routes.find(x=>x.id===editId):null;
-  if(r){Object.assign(r,f);if(pts.length){r.coords=pts;r.plan=pendingPlan}if(fileIds.has(r.id))r._mod=true;map.removeLayer(layers[r.id]);drawRoute(r)}
+  if(r){Object.assign(r,f);if(pts.length){r.coords=pts;r.plan=pendingPlan}if(fileIds.has(r.id))r._mod=true;map.removeLayer(layers[r.id]);map.removeLayer(casings[r.id]);drawRoute(r)}
   else{r={id:Date.now().toString(36),...f,coords:pts,plan:pendingPlan};routes.push(r);drawRoute(r)}
   editId=null;planEditId=null;pendingPlan=null;save();pts=[];renderPrev();show('idle');select(r.id);
 };
@@ -243,7 +257,7 @@ function stats(c){
 function cur(){$('#map').style.cursor=hand?'grab':(drawing||pick?'crosshair':'')}
 function setHand(v){hand=v;$('#zh').classList.toggle('on',v);if(v)pick=false;cur();if(planning)renderPlan()}
 $('#zh').onclick=()=>setHand(!hand);
-const resetOp=()=>Object.values(layers).forEach(l=>l.setStyle({opacity:.9}));
+const resetOp=()=>{Object.values(layers).forEach(l=>l.setStyle({opacity:1}));Object.values(casings).forEach(l=>l.setStyle({opacity:.95}))};
 const lab=i=>i<26?String.fromCharCode(65+i):String(i+1);
 function openPlan(){const first=$('#plan').classList.contains('hidden');planning=true;if(first&&!hand)pick=true;$('#plan').classList.remove('hidden');renderPlan();cur()}
 function renderPlan(){
@@ -291,7 +305,8 @@ function drawAlts(fit){
   altG.clearLayers();const b=[];
   [...alts.keys()].sort((x,y)=>(x===selAlt)-(y===selAlt)).forEach(i=>{
     const ll=alts[i].map(p=>[p[1],p[0]]);b.push(...ll);
-    L.polyline(ll,{bubblingMouseEvents:false,className:'alt',weight:i===selAlt?6:4,dashArray:i===selAlt?null:'8 6'}).on('click',()=>{selAlt=i;drawAlts()}).addTo(altG);
+    L.polyline(ll,{pane:'csp',className:'cs',weight:i===selAlt?12:9,opacity:.95,interactive:false}).addTo(altG);
+    L.polyline(ll,{bubblingMouseEvents:false,className:'alt',weight:i===selAlt?7:5,dashArray:i===selAlt?null:'8 6'}).on('click',()=>{selAlt=i;drawAlts()}).addTo(altG);
   });
   if(fit)map.fitBounds(L.latLngBounds(b),{padding:[40,40]});
   $('#pout').innerHTML=alts.map((c,i)=>{const t=stats(c);
@@ -320,7 +335,7 @@ function editMeta(id){
 }
 function editGeo(id){
   const r=routes.find(x=>x.id===id);editId=id;pendingPlan=null;setHand(false);drawing=true;
-  pts=r.coords.map(p=>p.slice());layers[id].setStyle({opacity:.25});
+  pts=r.coords.map(p=>p.slice());layers[id].setStyle({opacity:.25});casings[id].setStyle({opacity:.15});
   renderPrev();$('#err').classList.add('hidden');$('#map').style.cursor='crosshair';show('drawing');
 }
 function editPlan(id){
