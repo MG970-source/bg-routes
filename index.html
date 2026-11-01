@@ -325,8 +325,8 @@ function updatePk(cov){
     const pct=k.cells.length?k.cells.filter(c=>cov.has(c)).length/k.cells.length:0;
     let d=0;routes.forEach(r=>{for(let i=1;i<r.coords.length;i++){const a=r.coords[i-1],b=r.coords[i];if(inAny((a[0]+b[0])/2,(a[1]+b[1])/2,k.rings))d+=km([a,b])}});
     const vis=d>0;
+    L.polygon(k.rings.map(r=>[r]),{pane:'prp',className:'pk'+(vis?' vis':''),interactive:false}).addTo(pkG);
     if(!k.dup){
-      L.polygon(k.rings.map(r=>[r]),{pane:'prp',className:'pk'+(vis?' vis':''),interactive:false}).addTo(pkG);
       L.marker(L.latLngBounds(k.rings.flat()).getCenter(),{icon:L.divIcon({className:'pkl',html:`<div class="pkt">${k.n}<small>${k.t}${vis?' · '+d.toFixed(0)+' км · '+pc(pct):''}</small></div>`,iconSize:null}),interactive:false,keyboard:false}).addTo(pkG);
     }
     return `<div><b>${vis?'✓ ':''}${k.n}</b> <span class="meta">${k.t} · ${vis?d.toFixed(0)+' км · '+pc(pct):'още не е посетен'}</span><div class="bar"><i style="width:${Math.max(pct>0?2:0,Math.round(pct*100))}%"></i></div></div>`;
