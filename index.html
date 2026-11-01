@@ -45,11 +45,11 @@ details{margin-top:12px}summary{cursor:pointer;color:var(--mute);font-size:14px}
 .zoom button.on{background:var(--acc);color:var(--accink);border-color:var(--acc)}
 .pr{display:flex;align-items:center;gap:6px;padding:3px 0}.pr span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.pr button{padding:1px 7px}
 .cs{stroke:#fff;fill:none;stroke-linecap:round;stroke-linejoin:round}
-#map.dim .leaflet-tile-pane{filter:saturate(.45) brightness(1.04) contrast(.92)}
+#map.dim .leaflet-tile-pane{filter:saturate(.2) brightness(1.18) contrast(.72)}
 #map.nolab .mtl{display:none}
-.mtt{transform:translate(-50%,-50%);text-align:center;white-space:nowrap;font-weight:700;font-size:13px;line-height:1.15;color:#1f2d1b;text-shadow:0 0 3px #fff,0 0 3px #fff,0 0 6px #fff;pointer-events:none}
+.mtt{transform:translate(-50%,-50%);text-align:center;white-space:nowrap;font-weight:700;font-size:14px;line-height:1.15;color:#0b3d1e;text-shadow:0 0 2px #fff,0 0 2px #fff,0 0 4px #fff,0 0 6px #fff;pointer-events:none}
 .mtt small{display:block;font-weight:600;font-size:11px}
-.mt{fill:var(--acc);stroke:var(--acc);stroke-width:2;stroke-dasharray:6 5;stroke-opacity:.8}
+.mt{fill:#16a34a;stroke:#0b3d1e;stroke-width:3;stroke-dasharray:9 5;stroke-opacity:1}
 .bar{height:6px;border-radius:3px;background:var(--line);overflow:hidden;margin:2px 0 8px}.bar i{display:block;height:100%;background:var(--route)}
 /* минимален Leaflet CSS */
 .leaflet-pane,.leaflet-tile,.leaflet-marker-icon,.leaflet-tile-container,.leaflet-pane>svg,.leaflet-layer{position:absolute;left:0;top:0}
@@ -285,7 +285,7 @@ function updateMt(){
   const rows=MP.map(m=>{
     const pct=m.cells.length?m.cells.filter(k=>cov.has(k)).length/m.cells.length:0;
     let d=0;routes.forEach(r=>{for(let i=1;i<r.coords.length;i++){const a=r.coords[i-1],b=r.coords[i];if(inPoly((a[0]+b[0])/2,(a[1]+b[1])/2,m.pg))d+=km([a,b])}});
-    L.polygon(m.pg,{pane:'mtp',className:'mt',fillOpacity:.06+Math.min(.5,pct*2.5),interactive:false}).addTo(mtG);
+    L.polygon(m.pg,{pane:'mtp',className:'mt',fillOpacity:.1+Math.min(.5,pct*2.5),interactive:false}).addTo(mtG);
     const c=[m.pg.reduce((t,p)=>t+p[0],0)/m.pg.length,m.pg.reduce((t,p)=>t+p[1],0)/m.pg.length];
     L.marker(c,{icon:L.divIcon({className:'mtl',html:`<div class="mtt">${m.n}<small>${d>0?d.toFixed(0)+' км · '+pc(pct):'още не е изминавана'}</small></div>`,iconSize:null}),interactive:false,keyboard:false}).addTo(mtG);
     return `<div><b>${m.n}</b> <span class="meta">${d.toFixed(0)} км · ${pc(pct)}</span><div class="bar"><i style="width:${Math.max(pct>0?2:0,Math.round(pct*100))}%"></i></div></div>`;
