@@ -74,7 +74,7 @@ details{margin-top:12px}summary{cursor:pointer;color:var(--mute);font-size:14px}
     <div class="sr"><input id="q" type="search" placeholder="Търси връх, хижа или място…" autocomplete="off"><div id="res" class="hidden"></div></div>
     <div id="plan" class="hidden">
       <div class="hint"><div id="phint"></div></div><div id="plist"></div>
-      <div class="row"><button class="sm" id="pSwap">⇅ Обърни</button><button class="sm" id="pClear">Изчисти</button></div>
+      <div class="row"><button class="sm" id="pPick">📍 Добави от картата</button><button class="sm" id="pSwap">⇅ Обърни</button><button class="sm" id="pClear">Изчисти</button></div>
       <div id="pout"></div>
     </div>
     <label class="meta" style="display:flex;gap:6px;align-items:center;margin:8px 0"><input type="checkbox" id="trl" checked style="width:auto">Маркирани пътеки на картата</label>
@@ -134,7 +134,7 @@ $('#fMt').innerHTML=MT.map(m=>`<option>${m[0]}</option>`).join('')+'<option>Др
 
 function drawRoute(r){
   const l=L.polyline(r.coords,{className:'rt',weight:4,opacity:.9}).addTo(map);
-  l.on('click',()=>{if(!drawing&&!planning)select(r.id)});
+  l.on('click',()=>{if(!drawing&&!pick)select(r.id)});
   layers[r.id]=l;
 }
 function style(){Object.keys(layers).forEach(id=>{const on=id===sel;layers[id].setStyle({weight:on?7:4});const el=layers[id].getElement();if(el)el.classList.toggle('sel',on);if(on)layers[id].bringToFront()})}
@@ -175,9 +175,9 @@ function renderPrev(){
   $('#dist').textContent=km(pts).toFixed(1);
 }
 $('#bNew').onclick=()=>{setHand(false);planEditId=null;editId=null;drawing=true;pts=[];sel=null;style();render();renderPrev();$('#err').classList.add('hidden');$('#map').style.cursor='crosshair';show('drawing')};
-map.on('click',e=>{if(hand)return;if(!drawing){if(planning)setPt([+e.latlng.lat.toFixed(5),+e.latlng.lng.toFixed(5)],e.latlng.lat.toFixed(3)+', '+e.latlng.lng.toFixed(3));return}pts.push([+e.latlng.lat.toFixed(5),+e.latlng.lng.toFixed(5)]);renderPrev();$('#err').classList.add('hidden')});
+map.on('click',e=>{if(hand)return;if(!drawing){if(pick)setPt([+e.latlng.lat.toFixed(5),+e.latlng.lng.toFixed(5)],e.latlng.lat.toFixed(3)+', '+e.latlng.lng.toFixed(3));return}pts.push([+e.latlng.lat.toFixed(5),+e.latlng.lng.toFixed(5)]);renderPrev();$('#err').classList.add('hidden')});
 $('#bUndo').onclick=()=>{pts.pop();renderPrev()};
-function stopDraw(){drawing=false;$('#map').style.cursor='';}
+function stopDraw(){drawing=false;cur()}
 $('#bCancel').onclick=()=>{stopDraw();pts=[];editId=null;resetOp();renderPrev();show('idle')};
 $('#bDone').onclick=()=>{
   if(pts.length<2){$('#err').classList.remove('hidden');return}
@@ -230,7 +230,7 @@ $('#bImp').onclick=()=>{
 };
 
 /* ---- търсачка и планиране ---- */
-let hand=false,P=[],planning=false,alts=[],selAlt=0,qseq=0,qt=null,hits=[],rseq=0,editId=null,planEditId=null,pendingPlan=null;
+let hand=false,pick=false,P=[],planning=false,alts=[],selAlt=0,qseq=0,qt=null,hits=[],rseq=0,editId=null,planEditId=null,pendingPlan=null;
 const planG=L.layerGroup().addTo(map),altG=L.layerGroup().addTo(map);
 const TL={peak:'връх',alpine_hut:'хижа',wilderness_hut:'заслон',hut:'хижа',saddle:'седловина',village:'село',town:'град',city:'град',hamlet:'махала',spring:'извор',cave_entrance:'пещера',lake:'езеро',locality:'местност'};
 const fmt=h=>{const m=Math.round(h*60);return Math.floor(m/60)+' ч '+m%60+' мин'};
@@ -240,14 +240,16 @@ function stats(c){
     if(e>last+5){up+=e-last;last=e}else if(e<last-5)last=e}
   return{d,up,h:d/4+up/400};
 }
-function setHand(v){hand=v;$('#zh').classList.toggle('on',v);$('#map').style.cursor=v?'grab':(drawing?'crosshair':'')}
+function cur(){$('#map').style.cursor=hand?'grab':(drawing||pick?'crosshair':'')}
+function setHand(v){hand=v;$('#zh').classList.toggle('on',v);if(v)pick=false;cur();if(planning)renderPlan()}
 $('#zh').onclick=()=>setHand(!hand);
 const resetOp=()=>Object.values(layers).forEach(l=>l.setStyle({opacity:.9}));
 const lab=i=>i<26?String.fromCharCode(65+i):String(i+1);
-function openPlan(){planning=true;$('#plan').classList.remove('hidden');renderPlan()}
+function openPlan(){const first=$('#plan').classList.contains('hidden');planning=true;if(first&&!hand)pick=true;$('#plan').classList.remove('hidden');renderPlan();cur()}
 function renderPlan(){
   planG.clearLayers();
   P.forEach((p,i)=>L.marker(p.ll,{icon:L.divIcon({className:'pinw',html:'<span class="pin">'+lab(i)+'</span>',iconSize:null}),interactive:false,keyboard:false}).addTo(planG));
+  const pb=$('#pPick');pb.textContent=pick?'📍 Клик на картата: включено':'📍 Добави от картата';pb.classList.toggle('pri',pick);
   $('#phint').textContent=!P.length?'Избери начало (A): потърси място или кликни на картата.':P.length===1?'Добави следваща точка (B) – със търсачката или с клик на картата.':'Добавяй още точки – C, D… колкото са ти нужни. Маршрутът минава през всички по реда им, а с ↑ и ↓ го променяш.';
   $('#plist').innerHTML=P.map((p,i)=>`<div class="pr"><b>${lab(i)}</b><span>${esc(p.name)}</span>${i>0?`<button class="sm" data-mv="${i}" data-d="-1">↑</button>`:''}${i<P.length-1?`<button class="sm" data-mv="${i}" data-d="1">↓</button>`:''}<button class="sm" data-rm="${i}">✕</button></div>`).join('');
 }
@@ -289,7 +291,7 @@ function drawAlts(fit){
   altG.clearLayers();const b=[];
   [...alts.keys()].sort((x,y)=>(x===selAlt)-(y===selAlt)).forEach(i=>{
     const ll=alts[i].map(p=>[p[1],p[0]]);b.push(...ll);
-    L.polyline(ll,{className:'alt',weight:i===selAlt?6:4,dashArray:i===selAlt?null:'8 6'}).on('click',()=>{selAlt=i;drawAlts()}).addTo(altG);
+    L.polyline(ll,{bubblingMouseEvents:false,className:'alt',weight:i===selAlt?6:4,dashArray:i===selAlt?null:'8 6'}).on('click',()=>{selAlt=i;drawAlts()}).addTo(altG);
   });
   if(fit)map.fitBounds(L.latLngBounds(b),{padding:[40,40]});
   $('#pout').innerHTML=alts.map((c,i)=>{const t=stats(c);
@@ -308,8 +310,9 @@ $('#pout').onclick=e=>{
   const it=e.target.closest('[data-alt]');if(it){selAlt=+it.dataset.alt;drawAlts()}
 };
 $('#bPlan').onclick=()=>{setHand(false);openPlan()};
-$('#pClear').onclick=()=>{P=[];planEditId=null;planning=false;rseq++;alts=[];planG.clearLayers();altG.clearLayers();$('#pout').innerHTML='';$('#plan').classList.add('hidden')};
+$('#pClear').onclick=()=>{P=[];planEditId=null;planning=false;pick=false;cur();rseq++;alts=[];planG.clearLayers();altG.clearLayers();$('#pout').innerHTML='';$('#plan').classList.add('hidden')};
 $('#pSwap').onclick=()=>{P.reverse();replan()};
+$('#pPick').onclick=()=>{pick=!pick;if(pick)setHand(false);cur();renderPlan()};
 function editMeta(id){
   const r=routes.find(x=>x.id===id);editId=id;pts=[];pendingPlan=null;
   $('#fName').value=r.name;$('#fMt').value=[...$('#fMt').options].some(o=>o.value===r.mountain)?r.mountain:'Друга';$('#fDate').value=r.date||'';$('#fNotes').value=r.notes||'';
