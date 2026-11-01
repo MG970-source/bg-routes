@@ -93,6 +93,7 @@ details[open]>summary::after{transform:rotate(-135deg)}
 .pkt{transform:translate(-50%,-50%);text-align:center;white-space:nowrap;font-size:11px;font-weight:700;color:#7c2d12;text-shadow:0 0 2px #fff,0 0 2px #fff,0 0 4px #fff;pointer-events:none}
 .pkt small{display:block;font-weight:600;font-size:10px}
 .go{cursor:pointer;border-radius:8px;padding:3px 6px;margin:0 -6px}.go:hover{background:var(--soft)}
+.rinf{margin:6px 0;font-size:13px}.leg{display:grid;gap:1px;padding:6px 0;border-top:1px solid var(--line)}.leg b{font-size:13px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 /* минимален Leaflet CSS */
 .leaflet-pane,.leaflet-tile,.leaflet-marker-icon,.leaflet-tile-container,.leaflet-pane>svg,.leaflet-layer{position:absolute;left:0;top:0}
@@ -116,7 +117,7 @@ details[open]>summary::after{transform:rotate(-135deg)}
 </head>
 <body>
 <main>
-  <div id="map"><div class="zoom"><button id="zi" aria-label="Приближи">+</button><button id="zo" aria-label="Отдалечи">−</button><button id="zh" aria-label="Ръчка: движи картата без да слагаш точки" title="Ръчка: движи картата без да слагаш точки"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v18M3 12h18M12 3l-3 3M12 3l3 3M12 21l-3-3M12 21l3-3M3 12l3-3M3 12l3 3M21 12l-3-3M21 12l-3 3"/></svg></button></div></div>
+  <div id="map"><div class="zoom"><button id="zi" aria-label="Приближи">+</button><button id="zo" aria-label="Отдалечи">−</button><button id="zc" aria-label="Върни картата в центъра" title="Върни картата в центъра и махни избора"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="8"/><path d="M12 1v3M12 20v3M1 12h3M20 12h3"/></svg></button><button id="zh" aria-label="Ръчка: движи картата без да слагаш точки" title="Ръчка: движи картата без да слагаш точки"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v18M3 12h18M12 3l-3 3M12 3l3 3M12 21l-3-3M12 21l3-3M3 12l3-3M3 12l3 3M21 12l-3-3M21 12l-3 3"/></svg></button></div></div>
   <aside data-s="full">
     <div class="head">
       <button class="grab" id="sheetH" aria-label="Покажи или скрий панела"><i></i></button>
@@ -231,7 +232,7 @@ function render(){
     const d=r.date?new Date(r.date).toLocaleDateString('bg-BG'):'без дата';
     const on=r.id===sel;
     return `<div class="item${on?' on':''}" data-id="${r.id}"><b>${esc(r.name||'Без име')}</b><span class="meta">${esc(r.mountain||'')}${r.mountain?' · ':''}${d} · ${km(r.coords).toFixed(1)} км${fileIds.has(r.id)?(r._mod?' · променен':''):' · ново'}</span>`+
-    (on?`${r.plan?`<div class="meta">${r.plan.map((q,i)=>lab(i)+' '+esc(q.name)).join(' → ')}</div>`:''}${r.notes?`<div class="notes">${esc(r.notes)}</div>`:''}<div class="row"><button class="sm" data-edit="${r.id}">Данни</button><button class="sm" data-geo="${r.id}">Трасе</button>${r.plan?`<button class="sm" data-plan="${r.id}">Спирки</button>`:''}<button class="sm" data-del="${r.id}">${confirmDel===r.id?'Потвърди изтриването':'Изтрий'}</button></div>`:'')+`</div>`;
+    (on?`${routeInfo(r)}${r.notes?`<div class="notes">${esc(r.notes)}</div>`:''}<div class="row"><button class="sm" data-edit="${r.id}">Данни</button><button class="sm" data-geo="${r.id}">Трасе</button>${r.plan?`<button class="sm" data-plan="${r.id}">Спирки</button>`:''}<button class="sm" data-del="${r.id}">${confirmDel===r.id?'Потвърди изтриването':'Изтрий'}</button></div>`:'')+`</div>`;
   }).join(''):'<p class="meta">Натисни „Нов маршрут“ и очертай първия си преход.</p>';
 }
 $('#list').onclick=e=>{
@@ -278,9 +279,9 @@ $('#gpx').onchange=e=>{
     const x=new DOMParser().parseFromString(rd.result,'application/xml');
     let last=null;
     x.querySelectorAll('trk').forEach(t=>{
-      let c=[...t.querySelectorAll('trkpt')].map(p=>[+(+p.getAttribute('lat')).toFixed(5),+(+p.getAttribute('lon')).toFixed(5)]);
+      let c=[...t.querySelectorAll('trkpt')].map(p=>[+(+p.getAttribute('lat')).toFixed(5),+(+p.getAttribute('lon')).toFixed(5),(e=>e&&isFinite(+e.textContent)?Math.round(+e.textContent):null)(p.querySelector('ele'))]);
       if(c.length<2)return;
-      const step=Math.ceil(c.length/600);if(step>1)c=c.filter((_,i)=>i%step===0||i===c.length-1);
+      const step=Math.ceil(c.length/1200);if(step>1)c=c.filter((_,i)=>i%step===0||i===c.length-1);
       const tm=t.querySelector('time')||x.querySelector('metadata time');
       const r={id:Date.now().toString(36)+Math.random().toString(36).slice(2,5),name:(t.querySelector('name')||{}).textContent||f.name.replace(/\.gpx$/i,''),mountain:nearestMt(c),date:tm?tm.textContent.slice(0,10):'',notes:'',coords:c};
       routes.push(r);drawRoute(r);last=r;
@@ -291,7 +292,7 @@ $('#gpx').onchange=e=>{
   rd.readAsText(f);
 };
 
-const toGeo=()=>JSON.stringify({type:'FeatureCollection',features:routes.map(r=>({type:'Feature',properties:{id:r.id,plan:r.plan||undefined,name:r.name,mountain:r.mountain,date:r.date,notes:r.notes},geometry:{type:'LineString',coordinates:r.coords.map(p=>[p[1],p[0]])}}))});
+const toGeo=()=>JSON.stringify({type:'FeatureCollection',features:routes.map(r=>({type:'Feature',properties:{id:r.id,plan:r.plan||undefined,name:r.name,mountain:r.mountain,date:r.date,notes:r.notes},geometry:{type:'LineString',coordinates:r.coords.map(toGJ)}}))});
 $('#bExp').onclick=()=>{$('#data').value=toGeo();$('#dmsg').textContent='Копирай текста и го постави в routes.geojson.'};
 $('#bCopy').onclick=async()=>{
   $('#data').value=toGeo();$('#data').select();
@@ -301,7 +302,7 @@ $('#bImp').onclick=()=>{
   try{
     const g=JSON.parse($('#data').value);let n=0;
     g.features.forEach(f=>{if(f.geometry&&f.geometry.type==='LineString'){
-      const p=f.properties||{};if(p.id&&routes.some(x=>x.id===p.id))return;const r={plan:p.plan||null,id:p.id||Date.now().toString(36)+Math.random().toString(36).slice(2,5),name:p.name||'',mountain:p.mountain||'',date:p.date||'',notes:p.notes||'',coords:f.geometry.coordinates.map(c=>[c[1],c[0]])};
+      const p=f.properties||{};if(p.id&&routes.some(x=>x.id===p.id))return;const r={plan:p.plan||null,id:p.id||Date.now().toString(36)+Math.random().toString(36).slice(2,5),name:p.name||'',mountain:p.mountain||'',date:p.date||'',notes:p.notes||'',coords:f.geometry.coordinates.map(fromGJ)};
       routes.push(r);drawRoute(r);n++}});
     save();render();$('#dmsg').textContent=`Заредени маршрути: ${n}.`;
   }catch(e){$('#dmsg').textContent='Текстът не е валиден GeoJSON.'}
@@ -429,19 +430,60 @@ const planG=L.layerGroup().addTo(map),altG=L.layerGroup().addTo(map),stopG=L.lay
 function showStops(){
   stopG.clearLayers();
   const r=routes.find(x=>x.id===sel);if(!r||!r.plan)return;
-  r.plan.forEach((q,i)=>L.marker(q.ll,{icon:L.divIcon({className:'stp',html:'<span class="pin">'+lab(i)+'</span><span class="stn">'+esc(q.name)+'</span>',iconSize:null}),interactive:false,keyboard:false}).addTo(stopG));
+  const ix=stopIdx(r.coords,r.plan.map(q=>q.ll));
+  r.plan.forEach((q,i)=>{const e=r.coords[ix[i]][2];L.marker(q.ll,{icon:L.divIcon({className:'stp',html:'<span class="pin">'+lab(i)+'</span><span class="stn">'+esc(q.name)+(Number.isFinite(e)?' · '+Math.round(e)+' м':'')+'</span>',iconSize:null}),interactive:false,keyboard:false}).addTo(stopG)});
 }
 const TL={peak:'връх',alpine_hut:'хижа',wilderness_hut:'заслон',hut:'хижа',saddle:'седловина',village:'село',town:'град',city:'град',hamlet:'махала',spring:'извор',cave_entrance:'пещера',lake:'езеро',locality:'местност'};
 const fmt=h=>{const m=Math.round(h*60);return Math.floor(m/60)+' ч '+m%60+' мин'};
+function fromGJ(c){return Number.isFinite(c[2])?[c[1],c[0],c[2]]:[c[1],c[0]]}
+function toGJ(p){return Number.isFinite(p[2])?[p[1],p[0],p[2]]:[p[1],p[0]]}
+function hasEle(c){return c.some(p=>Number.isFinite(p[2]))}
+function legStats(c,a,b){
+  let d=0,up=0,dn=0,last=c[a][2];
+  for(let i=a+1;i<=b;i++){
+    d+=km([c[i-1],c[i]]);const e=c[i][2];
+    if(!Number.isFinite(e))continue;
+    if(!Number.isFinite(last)){last=e;continue}
+    if(e>last+5){up+=e-last;last=e}else if(e<last-5){dn+=last-e;last=e}
+  }
+  return{d,up,dn,h:d/4+up/400};
+}
+function stopIdx(c,lls){
+  const n=c.length,ix=[0];let from=0;
+  for(let k=1;k<lls.length-1;k++){
+    let best=from,bd=1e9;
+    for(let i=from;i<n;i++){const dl=c[i][0]-lls[k][0],dn=c[i][1]-lls[k][1],dd=dl*dl+dn*dn;if(dd<bd){bd=dd;best=i}}
+    ix.push(best);from=best;
+  }
+  ix.push(n-1);return ix;
+}
+function legRows(c,lls,names){
+  const ix=stopIdx(c,lls),he=hasEle(c);
+  return lls.slice(1).map((_,k)=>{
+    const t=legStats(c,ix[k],ix[k+1]);
+    return `<div class="leg"><b>${lab(k)} → ${lab(k+1)}</b><span class="meta">${esc(names[k])} → ${esc(names[k+1])}</span><span class="meta">${t.d.toFixed(1)} км${he?` · ↑ ${Math.round(t.up)} м · ↓ ${Math.round(t.dn)} м · ≈ ${fmt(t.h)}`:''}</span></div>`;
+  }).join('');
+}
+function routeInfo(r){
+  const c=r.coords,he=hasEle(c),t=legStats(c,0,c.length-1);
+  let h='<div class="rinf">';
+  if(r.plan)h+='<div class="meta">'+r.plan.map((q,i)=>lab(i)+' '+esc(q.name)).join(' → ')+'</div>';
+  h+=`<div><b>Общо:</b> ${t.d.toFixed(1)} км${he?` · ↑ ${Math.round(t.up)} м · ↓ ${Math.round(t.dn)} м · ≈ ${fmt(t.h)}`:''}</div>`;
+  if(he){const es=c.map(p=>p[2]).filter(Number.isFinite);h+=`<div class="meta">Височина: ${Math.round(Math.min(...es))}–${Math.round(Math.max(...es))} м</div>`}
+  else h+='<div class="meta">Няма данни за височина за този маршрут.</div>';
+  if(r.plan&&r.plan.length>2)h+=legRows(c,r.plan.map(q=>q.ll),r.plan.map(q=>q.name));
+  return h+'</div>';
+}
 function stats(c){
-  const d=km(c.map(p=>[p[1],p[0]]));let up=0,last=c[0][2];
+  const d=km(c.map(p=>[p[1],p[0]]));let up=0,dn=0,last=c[0][2];
   for(const p of c){const e=p[2];if(typeof e!=='number')continue;if(typeof last!=='number'){last=e;continue}
-    if(e>last+5){up+=e-last;last=e}else if(e<last-5)last=e}
-  return{d,up,h:d/4+up/400};
+    if(e>last+5){up+=e-last;last=e}else if(e<last-5){dn+=last-e;last=e}}
+  return{d,up,dn,h:d/4+up/400};
 }
 function cur(){$('#map').style.cursor=hand?'grab':(drawing||pick?'crosshair':'')}
 function setHand(v){hand=v;$('#zh').classList.toggle('on',v);if(v)pick=false;cur();if(planning)renderPlan()}
 $('#zh').onclick=()=>setHand(!hand);
+$('#zc').onclick=()=>{sel=null;confirmDel=null;style();render();$('#res').classList.add('hidden');map.fitBounds(bgLayer.getBounds(),fo(true))};
 const resetOp=()=>{Object.values(layers).forEach(l=>l.setStyle({opacity:1}));Object.values(casings).forEach(l=>l.setStyle({opacity:.95}))};
 const lab=i=>i<26?String.fromCharCode(65+i):String(i+1);
 function openPlan(){const first=$('#plan').classList.contains('hidden');planning=true;if(first&&!hand)pick=true;$('#plan').classList.remove('hidden');renderPlan();cur()}
@@ -495,13 +537,13 @@ function drawAlts(fit){
   });
   if(fit)map.fitBounds(L.latLngBounds(b),fo(false));
   $('#pout').innerHTML=alts.map((c,i)=>{const t=stats(c);
-    return `<div class="item${i===selAlt?' on':''}" data-alt="${i}"><b>${P.length>2?'Маршрут през '+P.length+' точки':'Вариант '+(i+1)}</b><span class="meta">${t.d.toFixed(1)} км · ↑ ${Math.round(t.up)} м · ≈ ${fmt(t.h)}</span>`+(i===selAlt?`<div class="row"><button class="pri sm" data-use="${i}">${planEditId?'Запиши промените':'Запази като мой маршрут'}</button></div>`:'')+'</div>'}).join('')+'<p class="note">Предложенията са ориентировъчни – провери маркировката, състоянието на пътеките и времето.</p>';
+    return `<div class="item${i===selAlt?' on':''}" data-alt="${i}"><b>${P.length>2?'Маршрут през '+P.length+' точки':'Вариант '+(i+1)}</b><span class="meta">${t.d.toFixed(1)} км · ↑ ${Math.round(t.up)} м · ↓ ${Math.round(t.dn)} м · ≈ ${fmt(t.h)}</span>`+(i===selAlt?(P.length>2?'<div class="rinf">'+legRows(c.map(q=>[q[1],q[0],q[2]]),P.map(x=>x.ll),P.map(x=>x.name))+'</div>':'')+`<div class="row"><button class="pri sm" data-use="${i}">${planEditId?'Запиши промените':'Запази като мой маршрут'}</button></div>`:'')+'</div>'}).join('')+'<p class="note">Предложенията са ориентировъчни – провери маркировката, състоянието на пътеките и времето.</p>';
 }
 $('#pout').onclick=e=>{
   const u=e.target.closest('[data-use]');
   if(u){
-    let c=alts[+u.dataset.use].map(p=>[+p[1].toFixed(5),+p[0].toFixed(5)]);
-    const st=Math.ceil(c.length/600);if(st>1)c=c.filter((_,k)=>k%st===0||k===c.length-1);
+    let c=alts[+u.dataset.use].map(p=>[+p[1].toFixed(5),+p[0].toFixed(5),Number.isFinite(p[2])?Math.round(p[2]):null]);
+    const st=Math.ceil(c.length/1200);if(st>1)c=c.filter((_,k)=>k%st===0||k===c.length-1);
     pts=c;drawing=false;pendingPlan=P.map(x=>({ll:x.ll,name:x.name}));editId=planEditId;
     const er=editId?routes.find(x=>x.id===editId):null;
     const allNm=P.map(x=>x.name).join(' → '),oldAuto=er&&er.plan?[er.plan.map(x=>x.name).join(' → '),er.plan[0].name+' → '+er.plan[er.plan.length-1].name]:[];
@@ -564,7 +606,7 @@ $('#q').addEventListener('focus',()=>{if(mob()&&document.querySelector('aside').
   let fr=[];
   try{
     const res=await fetch('routes.geojson?'+Date.now());const g=await res.json();
-    fr=g.features.filter(f=>f.geometry&&f.geometry.type==='LineString').map((f,i)=>{const p=f.properties||{};return{plan:p.plan||null,id:p.id||('f'+i),name:p.name||'',mountain:p.mountain||'',date:p.date||'',notes:p.notes||'',coords:f.geometry.coordinates.map(c=>[c[1],c[0]])}});
+    fr=g.features.filter(f=>f.geometry&&f.geometry.type==='LineString').map((f,i)=>{const p=f.properties||{};return{plan:p.plan||null,id:p.id||('f'+i),name:p.name||'',mountain:p.mountain||'',date:p.date||'',notes:p.notes||'',coords:f.geometry.coordinates.map(fromGJ)}});
   }catch(e){}
   fileIds=new Set(fr.map(r=>r.id));
   deleted=ld('bgdeleted').filter(id=>fileIds.has(id));
