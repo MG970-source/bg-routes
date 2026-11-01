@@ -243,12 +243,12 @@ function stats(c){
 function setHand(v){hand=v;$('#zh').classList.toggle('on',v);$('#map').style.cursor=v?'grab':(drawing?'crosshair':'')}
 $('#zh').onclick=()=>setHand(!hand);
 const resetOp=()=>Object.values(layers).forEach(l=>l.setStyle({opacity:.9}));
-const lab=i=>i===0?'A':(i===P.length-1?'B':String(i));
+const lab=i=>i<26?String.fromCharCode(65+i):String(i+1);
 function openPlan(){planning=true;$('#plan').classList.remove('hidden');renderPlan()}
 function renderPlan(){
   planG.clearLayers();
   P.forEach((p,i)=>L.marker(p.ll,{icon:L.divIcon({className:'pinw',html:'<span class="pin">'+lab(i)+'</span>',iconSize:null}),interactive:false,keyboard:false}).addTo(planG));
-  $('#phint').textContent=!P.length?'Избери начало: потърси място или кликни на картата.':P.length===1?'Добави край. Всяка следваща точка става нов край, а предишният – междинна спирка.':'Добави още точки за междинни спирки или промени реда им.';
+  $('#phint').textContent=!P.length?'Избери начало (A): потърси място или кликни на картата.':P.length===1?'Добави следваща точка (B) – със търсачката или с клик на картата.':'Добавяй още точки – C, D… колкото са ти нужни. Маршрутът минава през всички по реда им, а с ↑ и ↓ го променяш.';
   $('#plist').innerHTML=P.map((p,i)=>`<div class="pr"><b>${lab(i)}</b><span>${esc(p.name)}</span>${i>0?`<button class="sm" data-mv="${i}" data-d="-1">↑</button>`:''}${i<P.length-1?`<button class="sm" data-mv="${i}" data-d="1">↓</button>`:''}<button class="sm" data-rm="${i}">✕</button></div>`).join('');
 }
 function replan(){
@@ -293,7 +293,7 @@ function drawAlts(fit){
   });
   if(fit)map.fitBounds(L.latLngBounds(b),{padding:[40,40]});
   $('#pout').innerHTML=alts.map((c,i)=>{const t=stats(c);
-    return `<div class="item${i===selAlt?' on':''}" data-alt="${i}"><b>${P.length>2?'Маршрут със спирки ('+(P.length-2)+')':'Вариант '+(i+1)}</b><span class="meta">${t.d.toFixed(1)} км · ↑ ${Math.round(t.up)} м · ≈ ${fmt(t.h)}</span>`+(i===selAlt?`<div class="row"><button class="pri sm" data-use="${i}">${planEditId?'Запиши промените':'Запази като мой маршрут'}</button></div>`:'')+'</div>'}).join('')+'<p class="note">Предложенията са ориентировъчни – провери маркировката, състоянието на пътеките и времето.</p>';
+    return `<div class="item${i===selAlt?' on':''}" data-alt="${i}"><b>${P.length>2?'Маршрут през '+P.length+' точки':'Вариант '+(i+1)}</b><span class="meta">${t.d.toFixed(1)} км · ↑ ${Math.round(t.up)} м · ≈ ${fmt(t.h)}</span>`+(i===selAlt?`<div class="row"><button class="pri sm" data-use="${i}">${planEditId?'Запиши промените':'Запази като мой маршрут'}</button></div>`:'')+'</div>'}).join('')+'<p class="note">Предложенията са ориентировъчни – провери маркировката, състоянието на пътеките и времето.</p>';
 }
 $('#pout').onclick=e=>{
   const u=e.target.closest('[data-use]');
