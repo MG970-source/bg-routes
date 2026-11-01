@@ -49,7 +49,8 @@ details{margin-top:12px}summary{cursor:pointer;color:var(--mute);font-size:14px}
 #map.nolab .mtl{display:none}
 .mtt{transform:translate(-50%,-50%);text-align:center;white-space:nowrap;font-weight:700;font-size:14px;line-height:1.15;color:#0b3d1e;text-shadow:0 0 2px #fff,0 0 2px #fff,0 0 4px #fff,0 0 6px #fff;pointer-events:none}
 .mtt small{display:block;font-weight:600;font-size:11px}
-.mt{fill:#16a34a;stroke:#0b3d1e;stroke-width:3;stroke-dasharray:9 5;stroke-opacity:1}
+.mth{fill:none;stroke:#fff;stroke-width:8;stroke-opacity:.95;stroke-linejoin:round}
+.mt{fill:#16a34a;stroke:#0b3d1e;stroke-width:3.5;stroke-opacity:1;stroke-linejoin:round}
 .bar{height:6px;border-radius:3px;background:var(--line);overflow:hidden;margin:2px 0 8px}.bar i{display:block;height:100%;background:var(--route)}
 /* минимален Leaflet CSS */
 .leaflet-pane,.leaflet-tile,.leaflet-marker-icon,.leaflet-tile-container,.leaflet-pane>svg,.leaflet-layer{position:absolute;left:0;top:0}
@@ -107,7 +108,8 @@ details{margin-top:12px}summary{cursor:pointer;color:var(--mute);font-size:14px}
     <div id="list"></div>
     <details open><summary>Планини – колко е изминато</summary>
       <div id="mlist" style="margin-top:8px"></div>
-      <p class="note" style="margin-top:0">Границите са схематични. Обхватът е делът от площта на планината, който е в коридор около 3 км от маршрутите ти.</p>
+      <p class="note" id="bstat" style="margin-top:0">Границите са схематични.</p>
+      <p class="note" style="margin-top:0">Обхватът е делът от площта на планината, който е в коридор около 3 км от маршрутите ти.</p>
     </details>
     <details><summary>Данни за архива (routes.geojson)</summary>
       <textarea id="data" style="min-height:90px;margin-top:8px" placeholder="Тук се показва GeoJSON с маршрутите ти"></textarea>
@@ -270,10 +272,12 @@ const MP=[
 ];
 const DLA=0.02,DLN=0.027,mtG=L.layerGroup().addTo(map);
 const inPoly=(la,ln,pg)=>{let c=false;for(let i=0,j=pg.length-1;i<pg.length;j=i++){const a=pg[i],b=pg[j];if((a[0]>la)!==(b[0]>la)&&ln<(b[1]-a[1])*(la-a[0])/(b[0]-a[0])+a[1])c=!c}return c};
-MP.forEach(m=>{
+const calcCells=m=>{
   const la=m.pg.map(p=>p[0]),ln=m.pg.map(p=>p[1]);m.cells=[];
   for(let i=Math.floor(Math.min(...la)/DLA);i<=Math.ceil(Math.max(...la)/DLA);i++)for(let j=Math.floor(Math.min(...ln)/DLN);j<=Math.ceil(Math.max(...ln)/DLN);j++)if(inPoly(i*DLA,j*DLN,m.pg))m.cells.push(i+','+j);
-});
+};
+MP.forEach(calcCells);
+
 const pc=x=>x>0&&x<.01?'&lt;1%':Math.round(x*100)+'%';
 function updateMt(){
   const cov=new Set();
@@ -285,12 +289,55 @@ function updateMt(){
   const rows=MP.map(m=>{
     const pct=m.cells.length?m.cells.filter(k=>cov.has(k)).length/m.cells.length:0;
     let d=0;routes.forEach(r=>{for(let i=1;i<r.coords.length;i++){const a=r.coords[i-1],b=r.coords[i];if(inPoly((a[0]+b[0])/2,(a[1]+b[1])/2,m.pg))d+=km([a,b])}});
+    L.polygon(m.pg,{pane:'mtp',className:'mth',interactive:false}).addTo(mtG);
     L.polygon(m.pg,{pane:'mtp',className:'mt',fillOpacity:.1+Math.min(.5,pct*2.5),interactive:false}).addTo(mtG);
-    const c=[m.pg.reduce((t,p)=>t+p[0],0)/m.pg.length,m.pg.reduce((t,p)=>t+p[1],0)/m.pg.length];
+    const c=L.latLngBounds(m.pg).getCenter();
     L.marker(c,{icon:L.divIcon({className:'mtl',html:`<div class="mtt">${m.n}<small>${d>0?d.toFixed(0)+' км · '+pc(pct):'още не е изминавана'}</small></div>`,iconSize:null}),interactive:false,keyboard:false}).addTo(mtG);
     return `<div><b>${m.n}</b> <span class="meta">${d.toFixed(0)} км · ${pc(pct)}</span><div class="bar"><i style="width:${Math.max(pct>0?2:0,Math.round(pct*100))}%"></i></div></div>`;
   });
   $('#mlist').innerHTML=rows.join('');
+}
+const same=(a,b)=>a[0]===b[0]&&a[1]===b[1];
+function joinRings(segs){
+  const out=[];segs=segs.filter(x=>x.length>1);
+  while(segs.length){
+    let cur=segs.shift().slice(),ch=true;
+    while(ch&&!same(cur[0],cur[cur.length-1])){
+      ch=false;
+      for(let i=0;i<segs.length;i++){const q=segs[i],a=cur[cur.length-1];
+        if(same(q[0],a)){cur=cur.concat(q.slice(1));segs.splice(i,1);ch=true;break}
+        if(same(q[q.length-1],a)){cur=cur.concat(q.slice(0,-1).reverse());segs.splice(i,1);ch=true;break}}
+    }
+    if(cur.length>3&&same(cur[0],cur[cur.length-1]))out.push(cur);
+  }
+  return out;
+}
+const ringArea=r=>{let a=0;for(let i=1;i<r.length;i++)a+=r[i-1][1]*r[i][0]-r[i][1]*r[i-1][0];return Math.abs(a/2)};
+async function loadBounds(){
+  let res=null;
+  try{res=JSON.parse(localStorage.getItem('bgmtn2')||'null')}catch(e){}
+  if(!res){
+    try{
+      const names=MP.map(m=>m.n).join('|'),bb='(41.2,22.3,44.3,28.7)',f='["name"~"^('+names+')$"]["natural"~"^(mountain_range|massif|mountain_area)$"]'+bb;
+      const q='[out:json][timeout:60];(relation'+f+';way'+f+';);out geom;';
+      const r=await fetch('https://overpass-api.de/api/interpreter',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'data='+encodeURIComponent(q)});
+      if(!r.ok)throw 0;
+      const g=await r.json();res={};
+      (g.elements||[]).forEach(e=>{
+        const n=e.tags&&e.tags.name;if(!n)return;
+        let rings=[];
+        if(e.type==='way'&&e.geometry){const c=e.geometry.map(p=>[p.lat,p.lon]);if(c.length>3&&same(c[0],c[c.length-1]))rings=[c]}
+        else if(e.type==='relation')rings=joinRings((e.members||[]).filter(x=>x.type==='way'&&x.geometry&&x.role!=='inner').map(x=>x.geometry.map(p=>[p.lat,p.lon])));
+        rings.forEach(r=>{if(!res[n]||ringArea(r)>ringArea(res[n]))res[n]=r});
+      });
+      Object.keys(res).forEach(n=>{let r=res[n];const st=Math.ceil(r.length/500);if(st>1)r=r.filter((_,i)=>i%st===0||i===r.length-1);res[n]=r.map(p=>[+p[0].toFixed(4),+p[1].toFixed(4)])});
+      try{localStorage.setItem('bgmtn2',JSON.stringify(res))}catch(e){}
+    }catch(e){$('#bstat').textContent='Границите са схематични (точните не можаха да се заредят).';return}
+  }
+  let n=0;
+  MP.forEach(m=>{if(res[m.n]&&res[m.n].length>3){m.pg=res[m.n];calcCells(m);n++}});
+  $('#bstat').textContent=n?`Границите на ${n} от ${MP.length} планини са по данни от OpenStreetMap, останалите са схематични.`:'Границите са схематични (в OpenStreetMap не намерих очертания за тези планини).';
+  updateMt();
 }
 $('#mtn').onchange=e=>e.target.checked?mtG.addTo(map):map.removeLayer(mtG);
 zoomUI();
@@ -432,6 +479,7 @@ document.addEventListener('click',e=>{if(!e.target.closest('.sr'))$('#res').clas
   fr=fr.map(f=>{const e=eds.find(x=>x.id===f.id);return e&&!same(f,e)?{...e,_mod:true}:f});
   routes=fr.filter(r=>!deleted.includes(r.id)).concat(drafts);
   routes.forEach(drawRoute);render();
+  loadBounds();
 })();
 </script>
 </body>
