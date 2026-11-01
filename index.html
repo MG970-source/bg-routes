@@ -37,6 +37,12 @@ textarea{min-height:64px;resize:vertical}
 .zoom button{width:34px;height:34px;padding:0;font-size:20px;line-height:1}
 .note{font-size:12px;color:var(--mute);margin-top:14px}
 details{margin-top:12px}summary{cursor:pointer;color:var(--mute);font-size:14px}
+.sr{position:relative;margin-bottom:6px}
+#res{position:absolute;left:0;right:0;top:100%;z-index:1500;background:var(--panel);border:1px solid var(--line);border-radius:8px;max-height:260px;overflow:auto;margin-top:2px}
+#res div{padding:7px 10px;cursor:pointer;border-bottom:1px solid var(--line)}#res div:last-child{border:0}#res div:hover{background:var(--bg)}
+.pin{display:grid;place-items:center;width:24px;height:24px;margin:-12px 0 0 -12px;border-radius:50%;background:var(--acc);color:var(--accink);font-weight:700;font-size:13px;border:2px solid var(--panel)}
+.alt{stroke:var(--acc);fill:none;stroke-linecap:round;stroke-linejoin:round}
+.zoom button.on{background:var(--acc);color:var(--accink);border-color:var(--acc)}
 /* минимален Leaflet CSS */
 .leaflet-pane,.leaflet-tile,.leaflet-marker-icon,.leaflet-tile-container,.leaflet-pane>svg,.leaflet-layer{position:absolute;left:0;top:0}
 .leaflet-container{overflow:hidden}
@@ -64,8 +70,15 @@ details{margin-top:12px}summary{cursor:pointer;color:var(--mute);font-size:14px}
 </header>
 <main>
   <aside>
+    <div class="sr"><input id="q" type="search" placeholder="Търси връх, хижа или място…" autocomplete="off"><div id="res" class="hidden"></div></div>
+    <div id="plan" class="hidden">
+      <div class="hint"><div id="phint"></div><div id="pa"></div><div id="pb"></div></div>
+      <div class="row"><button class="sm" id="pSwap">⇅ Размени</button><button class="sm" id="pClear">Изчисти</button></div>
+      <div id="pout"></div>
+    </div>
+    <label class="meta" style="display:flex;gap:6px;align-items:center;margin:8px 0"><input type="checkbox" id="trl" checked style="width:auto">Маркирани пътеки на картата</label>
     <div id="idle">
-      <div class="row"><button class="pri" id="bNew">＋ Нов маршрут</button><label class="meta" style="margin:0;align-self:center"><input type="file" id="gpx" accept=".gpx" class="hidden"><button class="sm" id="bGpx" type="button">Качи GPX</button></label></div>
+      <div class="row"><button class="pri" id="bNew">＋ Нов маршрут</button><button id="bPlan">🧭 Планирай</button><label class="meta" style="margin:0;align-self:center"><input type="file" id="gpx" accept=".gpx" class="hidden"><button class="sm" id="bGpx" type="button">Качи GPX</button></label></div>
     </div>
     <div id="drawing" class="hidden">
       <div class="hint">Кликай по картата по пътя на маршрута – ориентирай се по върховете и населените места. <b id="dist">0.0</b> км</div>
@@ -86,9 +99,9 @@ details{margin-top:12px}summary{cursor:pointer;color:var(--mute);font-size:14px}
       <div class="row"><button class="sm" id="bExp">Покажи данните</button><button class="sm" id="bCopy">Копирай</button><button class="sm" id="bImp">Зареди от текста</button></div>
       <div class="meta" id="dmsg"></div>
     </details>
-    <p class="note">Контурът на България е схематичен. Записаните маршрути се четат от файла routes.geojson в хранилището; новите стоят в браузъра, докато не ги добавиш там. Топографският фон (OpenTopoMap, © OpenStreetMap) се показва там, където страницата има право да го зареди.</p>
+    <p class="note">Контурът на България е схематичен. Търсачката (Photon) и маршрутите (BRouter) са безплатни обществени услуги и може да се забавят. Записаните маршрути се четат от файла routes.geojson в хранилището; новите стоят в браузъра, докато не ги добавиш там. Топографският фон (OpenTopoMap, © OpenStreetMap) се показва там, където страницата има право да го зареди.</p>
   </aside>
-  <div id="map"><div class="zoom"><button id="zi" aria-label="Приближи">+</button><button id="zo" aria-label="Отдалечи">−</button></div></div>
+  <div id="map"><div class="zoom"><button id="zi" aria-label="Приближи">+</button><button id="zo" aria-label="Отдалечи">−</button><button id="zh" aria-label="Ръчка: движи картата без да слагаш точки" title="Ръчка: движи картата без да слагаш точки">✋</button></div></div>
 </main>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
 <script>
@@ -104,6 +117,8 @@ map.createPane('bgp').style.zIndex=150;
 const bgLayer=L.polygon(BG,{pane:'bgp',className:'bg',interactive:false}).addTo(map);
 map.fitBounds(bgLayer.getBounds());
 L.tileLayer('https://tile.opentopomap.org/{z}/{x}/{y}.png',{maxZoom:17}).addTo(map);
+const trails=L.tileLayer('https://tile.waymarkedtrails.org/hiking/{z}/{x}/{y}.png',{maxZoom:18,opacity:.85}).addTo(map);
+$('#trl').onchange=e=>e.target.checked?trails.addTo(map):map.removeLayer(trails);
 MT.forEach(m=>L.marker([m[1],m[2]],{icon:L.divIcon({className:'ml',html:'▲ '+m[0],iconSize:null}),interactive:false,keyboard:false}).addTo(map));
 const prev=L.layerGroup().addTo(map);
 $('#zi').onclick=()=>map.zoomIn();$('#zo').onclick=()=>map.zoomOut();
@@ -118,7 +133,7 @@ $('#fMt').innerHTML=MT.map(m=>`<option>${m[0]}</option>`).join('')+'<option>Др
 
 function drawRoute(r){
   const l=L.polyline(r.coords,{className:'rt',weight:4,opacity:.9}).addTo(map);
-  l.on('click',()=>{if(!drawing)select(r.id)});
+  l.on('click',()=>{if(!drawing&&!planning)select(r.id)});
   layers[r.id]=l;
 }
 function style(){Object.keys(layers).forEach(id=>{const on=id===sel;layers[id].setStyle({weight:on?7:4});const el=layers[id].getElement();if(el)el.classList.toggle('sel',on);if(on)layers[id].bringToFront()})}
@@ -155,8 +170,8 @@ function renderPrev(){
   pts.forEach(p=>L.circleMarker(p,{radius:4,className:'dot',interactive:false}).addTo(prev));
   $('#dist').textContent=km(pts).toFixed(1);
 }
-$('#bNew').onclick=()=>{drawing=true;pts=[];sel=null;style();render();renderPrev();$('#err').classList.add('hidden');$('#map').style.cursor='crosshair';show('drawing')};
-map.on('click',e=>{if(!drawing)return;pts.push([+e.latlng.lat.toFixed(5),+e.latlng.lng.toFixed(5)]);renderPrev();$('#err').classList.add('hidden')});
+$('#bNew').onclick=()=>{setHand(false);drawing=true;pts=[];sel=null;style();render();renderPrev();$('#err').classList.add('hidden');$('#map').style.cursor='crosshair';show('drawing')};
+map.on('click',e=>{if(hand)return;if(!drawing){if(planning)setPt([+e.latlng.lat.toFixed(5),+e.latlng.lng.toFixed(5)],e.latlng.lat.toFixed(3)+', '+e.latlng.lng.toFixed(3));return}pts.push([+e.latlng.lat.toFixed(5),+e.latlng.lng.toFixed(5)]);renderPrev();$('#err').classList.add('hidden')});
 $('#bUndo').onclick=()=>{pts.pop();renderPrev()};
 function stopDraw(){drawing=false;$('#map').style.cursor='';}
 $('#bCancel').onclick=()=>{stopDraw();pts=[];renderPrev();show('idle')};
@@ -206,6 +221,96 @@ $('#bImp').onclick=()=>{
     save();render();$('#dmsg').textContent=`Заредени маршрути: ${n}.`;
   }catch(e){$('#dmsg').textContent='Текстът не е валиден GeoJSON.'}
 };
+
+/* ---- търсачка и планиране ---- */
+let hand=false,A=null,B=null,planning=false,alts=[],selAlt=0,qseq=0,qt=null,hits=[];
+const planG=L.layerGroup().addTo(map),altG=L.layerGroup().addTo(map);
+const TL={peak:'връх',alpine_hut:'хижа',wilderness_hut:'заслон',hut:'хижа',saddle:'седловина',village:'село',town:'град',city:'град',hamlet:'махала',spring:'извор',cave_entrance:'пещера',lake:'езеро',locality:'местност'};
+const fmt=h=>{const m=Math.round(h*60);return Math.floor(m/60)+' ч '+m%60+' мин'};
+function stats(c){
+  const d=km(c.map(p=>[p[1],p[0]]));let up=0,last=c[0][2];
+  for(const p of c){const e=p[2];if(typeof e!=='number')continue;if(typeof last!=='number'){last=e;continue}
+    if(e>last+5){up+=e-last;last=e}else if(e<last-5)last=e}
+  return{d,up,h:d/4+up/400};
+}
+function setHand(v){hand=v;$('#zh').classList.toggle('on',v);$('#map').style.cursor=v?'grab':(drawing?'crosshair':'')}
+$('#zh').onclick=()=>setHand(!hand);
+function openPlan(){planning=true;$('#plan').classList.remove('hidden');renderPlan()}
+function renderPlan(){
+  planG.clearLayers();
+  [['A',A],['B',B]].forEach(([k,p])=>{if(p)L.marker(p.ll,{icon:L.divIcon({className:'pinw',html:'<span class="pin">'+k+'</span>',iconSize:null}),interactive:false,keyboard:false}).addTo(planG)});
+  $('#phint').textContent=!A?'Избери начало: потърси място или кликни на картата.':!B?'Сега избери край.':'';
+  $('#pa').textContent='A (начало): '+(A?A.name:'—');
+  $('#pb').textContent='B (край): '+(B?B.name:'—');
+}
+function setPt(ll,name){
+  openPlan();
+  if(!A||B){A={ll,name};B=null;altG.clearLayers();alts=[];$('#pout').innerHTML=''}else B={ll,name};
+  renderPlan();
+  if(A&&B)findRoutes();
+}
+async function findRoutes(){
+  altG.clearLayers();alts=[];selAlt=0;
+  $('#pout').innerHTML='<p class="meta">Търся маршрути…</p>';
+  const q=`${A.ll[1]},${A.ll[0]}|${B.ll[1]},${B.ll[0]}`,seen=new Set();
+  for(let i=0;i<3;i++){
+    try{
+      const r=await fetch(`https://brouter.de/brouter?lonlats=${q}&profile=hiking-mountain&alternativeidx=${i}&format=geojson`);
+      if(!r.ok)break;
+      const c=(await r.json()).features[0].geometry.coordinates;
+      const k=c.length+':'+c[c.length>>1];
+      if(c.length>1&&!seen.has(k)){seen.add(k);alts.push(c)}
+    }catch(e){break}
+  }
+  if(!alts.length){$('#pout').innerHTML='<p class="meta">Не успях да получа маршрут. Може между двете точки да няма път, или услугата да е заета – опитай пак след малко.</p>';return}
+  drawAlts(true);
+}
+function drawAlts(fit){
+  altG.clearLayers();const b=[];
+  [...alts.keys()].sort((x,y)=>(x===selAlt)-(y===selAlt)).forEach(i=>{
+    const ll=alts[i].map(p=>[p[1],p[0]]);b.push(...ll);
+    L.polyline(ll,{className:'alt',weight:i===selAlt?6:4,dashArray:i===selAlt?null:'8 6'}).on('click',()=>{selAlt=i;drawAlts()}).addTo(altG);
+  });
+  if(fit)map.fitBounds(L.latLngBounds(b),{padding:[40,40]});
+  $('#pout').innerHTML=alts.map((c,i)=>{const t=stats(c);
+    return `<div class="item${i===selAlt?' on':''}" data-alt="${i}"><b>Вариант ${i+1}</b><span class="meta">${t.d.toFixed(1)} км · ↑ ${Math.round(t.up)} м · ≈ ${fmt(t.h)}</span>`+(i===selAlt?`<div class="row"><button class="pri sm" data-use="${i}">Запази като мой маршрут</button></div>`:'')+'</div>'}).join('')+'<p class="note">Предложенията са ориентировъчни – провери маркировката, състоянието на пътеките и времето.</p>';
+}
+$('#pout').onclick=e=>{
+  const u=e.target.closest('[data-use]');
+  if(u){
+    let c=alts[+u.dataset.use].map(p=>[+p[1].toFixed(5),+p[0].toFixed(5)]);
+    const st=Math.ceil(c.length/600);if(st>1)c=c.filter((_,k)=>k%st===0||k===c.length-1);
+    pts=c;drawing=false;$('#fName').value=A.name+' → '+B.name;$('#fNotes').value='';$('#fDate').value='';$('#fMt').value=nearestMt(pts);
+    show('form');renderPrev();return;
+  }
+  const it=e.target.closest('[data-alt]');if(it){selAlt=+it.dataset.alt;drawAlts()}
+};
+$('#bPlan').onclick=()=>{setHand(false);openPlan()};
+$('#pClear').onclick=()=>{A=B=null;planning=false;alts=[];planG.clearLayers();altG.clearLayers();$('#pout').innerHTML='';$('#plan').classList.add('hidden')};
+$('#pSwap').onclick=()=>{[A,B]=[B,A];renderPlan();if(A&&B)findRoutes()};
+$('#q').addEventListener('input',()=>{
+  clearTimeout(qt);const v=$('#q').value.trim();
+  if(v.length<2){$('#res').classList.add('hidden');return}
+  qt=setTimeout(()=>search(v),350);
+});
+async function search(v){
+  const n=++qseq;
+  try{
+    const r=await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(v)}&limit=10&lat=42.7&lon=25.3&bbox=22.3,41.2,28.7,44.3`);
+    const g=await r.json();if(n!==qseq)return;
+    hits=g.features.filter(x=>(x.properties.countrycode||'BG')==='BG'&&x.properties.name);
+    $('#res').innerHTML=hits.length?hits.map((x,i)=>{const p=x.properties,t=TL[p.osm_value]||'',w=p.city||p.county||p.state||'';
+      return `<div data-i="${i}">${esc(p.name)}<span class="meta">${t?' · '+t:''}${w?' · '+esc(w):''}</span></div>`}).join(''):'<div class="meta">Няма резултати</div>';
+  }catch(e){hits=[];$('#res').innerHTML='<div class="meta">Търсачката не отговори.</div>'}
+  $('#res').classList.remove('hidden');
+}
+$('#res').onclick=e=>{
+  const d=e.target.closest('[data-i]');if(!d)return;
+  const x=hits[+d.dataset.i],ll=[x.geometry.coordinates[1],x.geometry.coordinates[0]];
+  $('#res').classList.add('hidden');$('#q').value='';
+  map.setView(ll,13);setPt(ll,x.properties.name);
+};
+document.addEventListener('click',e=>{if(!e.target.closest('.sr'))$('#res').classList.add('hidden')});
 
 (async()=>{
   let fr=[];
