@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="bg">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Моите планински маршрути</title>
+<style>
+:root{--bg:#f6f4ee;--panel:#fffdf8;--ink:#23301f;--mute:#6b7466;--line:#d9d6c8;--acc:#2f6b3a;--accink:#fff;--land:#e1e9d0;--sea:#dde7ea;--route:#c2410c;--sel:#7c2d12;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#141913;--panel:#1c231a;--ink:#e6ebdf;--mute:#9aa593;--line:#34402f;--acc:#6fb27c;--accink:#10170f;--land:#27331f;--sea:#18242a;--route:#fb923c;--sel:#fdba74}}
+:root[data-theme="dark"]{--bg:#141913;--panel:#1c231a;--ink:#e6ebdf;--mute:#9aa593;--line:#34402f;--acc:#6fb27c;--accink:#10170f;--land:#27331f;--sea:#18242a;--route:#fb923c;--sel:#fdba74}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{display:flex;flex-direction:column;background:var(--bg);color:var(--ink);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+header{display:flex;flex-wrap:wrap;gap:4px 16px;align-items:baseline;justify-content:space-between;padding:10px 16px;border-bottom:1px solid var(--line);background:var(--panel)}
+h1{font-size:18px;margin:0}
+#stats{color:var(--mute);font-size:14px}
+main{flex:1;display:flex;min-height:0}
+aside{width:320px;overflow:auto;padding:12px;background:var(--panel);border-right:1px solid var(--line)}
+#map{flex:1;position:relative;background:var(--sea);min-width:0}
+@media (max-width:760px){main{flex-direction:column}#map{order:-1;flex:1.1}aside{width:auto;flex:1;border-right:0;border-top:1px solid var(--line)}}
+button,input,select,textarea{font:inherit;color:inherit}
+button{border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:7px 12px;cursor:pointer}
+button.pri{background:var(--acc);color:var(--accink);border-color:var(--acc);font-weight:600}
+button.sm{padding:3px 9px;font-size:13px}
+.row{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+label{display:block;font-size:13px;color:var(--mute);margin-top:8px}
+input,select,textarea{width:100%;padding:7px 9px;border:1px solid var(--line);border-radius:8px;background:var(--bg)}
+textarea{min-height:64px;resize:vertical}
+.hint{font-size:13px;color:var(--mute);background:var(--bg);border:1px dashed var(--line);border-radius:8px;padding:8px 10px;margin:8px 0}
+.hidden{display:none!important}
+.item{border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin:8px 0;cursor:pointer;background:var(--bg)}
+.item.on{border-color:var(--acc);box-shadow:0 0 0 1px var(--acc)}
+.item b{display:block}
+.meta{font-size:13px;color:var(--mute)}
+.notes{margin-top:6px;white-space:pre-wrap;font-size:14px}
+.zoom{position:absolute;right:10px;top:10px;z-index:1000;display:flex;flex-direction:column;gap:4px}
+.zoom button{width:34px;height:34px;padding:0;font-size:20px;line-height:1}
+.note{font-size:12px;color:var(--mute);margin-top:14px}
+details{margin-top:12px}summary{cursor:pointer;color:var(--mute);font-size:14px}
+/* минимален Leaflet CSS */
+.leaflet-pane,.leaflet-tile,.leaflet-marker-icon,.leaflet-tile-container,.leaflet-pane>svg,.leaflet-layer{position:absolute;left:0;top:0}
+.leaflet-container{overflow:hidden}
+.leaflet-tile,.leaflet-marker-icon{user-select:none;-webkit-user-drag:none}
+.leaflet-tile{visibility:hidden}.leaflet-tile-loaded{visibility:inherit}
+.leaflet-pane{z-index:400}.leaflet-tile-pane{z-index:200}.leaflet-overlay-pane{z-index:400}.leaflet-marker-pane{z-index:600}
+.leaflet-map-pane svg{z-index:200}
+.leaflet-overlay-pane svg{max-width:none!important;max-height:none!important}
+.leaflet-pane>svg path,.leaflet-tile-container{pointer-events:none}
+.leaflet-pane>svg path.leaflet-interactive{pointer-events:auto}
+.leaflet-interactive{cursor:pointer}
+.leaflet-grab{cursor:grab}.leaflet-dragging .leaflet-grab{cursor:grabbing}
+/* стилове на картата */
+.bg{fill:var(--land);stroke:var(--mute);stroke-width:1.5;stroke-opacity:.7}
+.rt{stroke:var(--route);fill:none;stroke-linecap:round;stroke-linejoin:round}
+.rt.sel{stroke:var(--sel)}
+.dot{fill:var(--route);stroke:var(--panel);stroke-width:1.5}
+.ml{white-space:nowrap;font-size:12px;color:var(--mute);pointer-events:none;transform-origin:0 0;text-shadow:0 0 3px var(--panel),0 0 3px var(--panel)}
+</style>
+</head>
+<body>
+<header>
+  <h1>⛰️ Моите планински маршрути</h1>
+  <div id="stats"></div>
+</header>
+<main>
+  <aside>
+    <div id="idle">
+      <div class="row"><button class="pri" id="bNew">＋ Нов маршрут</button><label class="meta" style="margin:0;align-self:center"><input type="file" id="gpx" accept=".gpx" class="hidden"><button class="sm" id="bGpx" type="button">Качи GPX</button></label></div>
+    </div>
+    <div id="drawing" class="hidden">
+      <div class="hint">Кликай по картата по пътя на маршрута – ориентирай се по върховете и населените места. <b id="dist">0.0</b> км</div>
+      <div class="row"><button id="bUndo">↩ Назад</button><button class="pri" id="bDone">Готово</button><button id="bCancel">Откажи</button></div>
+      <div class="hint hidden" id="err">Постави поне две точки.</div>
+    </div>
+    <div id="form" class="hidden">
+      <label>Име<input id="fName" placeholder="напр. Рилски езера – Мальовица"></label>
+      <label>Планина<select id="fMt"></select></label>
+      <label>Дата<input id="fDate" type="date"></label>
+      <label>Бележки<textarea id="fNotes" placeholder="Време, хижи, впечатления…"></textarea></label>
+      <div class="row"><button class="pri" id="bSave">Запази</button><button id="bDiscard">Отхвърли</button></div>
+    </div>
+    <div class="hint hidden" id="pend"></div>
+    <div id="list"></div>
+    <details><summary>Данни за архива (routes.geojson)</summary>
+      <textarea id="data" style="min-height:90px;margin-top:8px" placeholder="Тук се показва GeoJSON с маршрутите ти"></textarea>
+      <div class="row"><button class="sm" id="bExp">Покажи данните</button><button class="sm" id="bCopy">Копирай</button><button class="sm" id="bImp">Зареди от текста</button></div>
+      <div class="meta" id="dmsg"></div>
+    </details>
+    <p class="note">Контурът на България е схематичен. Записаните маршрути се четат от файла routes.geojson в хранилището; новите стоят в браузъра, докато не ги добавиш там. Топографският фон (OpenTopoMap, © OpenStreetMap) се показва там, където страницата има право да го зареди.</p>
+  </aside>
+  <div id="map"><div class="zoom"><button id="zi" aria-label="Приближи">+</button><button id="zo" aria-label="Отдалечи">−</button></div></div>
+</main>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+<script>
+const $=s=>document.querySelector(s);
+const BG=[[44.21,22.67],[44.0,22.87],[43.83,23.25],[43.75,23.7],[43.73,24.2],[43.7,24.9],[43.62,25.35],[43.85,25.95],[44.05,26.6],[44.12,27.27],[43.9,28.0],[43.68,28.6],[43.55,28.6],[43.37,28.48],[43.2,27.95],[42.82,27.88],[42.66,27.73],[42.5,27.47],[42.42,27.7],[42.17,27.85],[41.98,28.03],[42.0,27.5],[41.95,27.0],[41.75,26.6],[41.72,26.35],[41.53,26.12],[41.35,26.1],[41.25,25.7],[41.35,25.15],[41.5,24.7],[41.55,24.15],[41.5,23.6],[41.4,23.35],[41.35,23.1],[41.4,22.95],[41.7,22.9],[42.0,22.9],[42.33,22.36],[42.55,22.45],[42.75,22.5],[43.0,22.9],[43.3,22.65],[43.55,22.5],[43.9,22.55]];
+const MT=[["Стара планина",42.719,24.918],["Рила",42.179,23.585],["Пирин",41.767,23.399],["Витоша",42.563,23.276],["Родопи",41.667,24.533],["Осогово",42.07,22.52],["Беласица",41.37,23.15],["Странджа",42.05,27.55],["Средна гора",42.6,24.4]];
+let routes=[],layers={},drawing=false,pts=[],sel=null,confirmDel=null,fileIds=new Set(),deleted=[];
+const ld=k=>{try{return JSON.parse(localStorage.getItem(k)||'[]')}catch(e){return []}};
+const save=()=>{try{localStorage.setItem('bgdrafts',JSON.stringify(routes.filter(r=>!fileIds.has(r.id))));localStorage.setItem('bgdeleted',JSON.stringify(deleted))}catch(e){}};
+
+const map=L.map('map',{zoomControl:false,zoomAnimation:false,fadeAnimation:false,markerZoomAnimation:false,minZoom:6,attributionControl:false});
+map.createPane('bgp').style.zIndex=150;
+const bgLayer=L.polygon(BG,{pane:'bgp',className:'bg',interactive:false}).addTo(map);
+map.fitBounds(bgLayer.getBounds());
+L.tileLayer('https://tile.opentopomap.org/{z}/{x}/{y}.png',{maxZoom:17}).addTo(map);
+MT.forEach(m=>L.marker([m[1],m[2]],{icon:L.divIcon({className:'ml',html:'▲ '+m[0],iconSize:null}),interactive:false,keyboard:false}).addTo(map));
+const prev=L.layerGroup().addTo(map);
+$('#zi').onclick=()=>map.zoomIn();$('#zo').onclick=()=>map.zoomOut();
+addEventListener('resize',()=>map.invalidateSize());
+setTimeout(()=>{map.invalidateSize();map.fitBounds(bgLayer.getBounds())},50);
+
+const rad=x=>x*Math.PI/180;
+function km(c){let d=0;for(let i=1;i<c.length;i++){const a=c[i-1],b=c[i],dl=rad(b[0]-a[0]),dn=rad(b[1]-a[1]);const h=Math.sin(dl/2)**2+Math.cos(rad(a[0]))*Math.cos(rad(b[0]))*Math.sin(dn/2)**2;d+=12742*Math.asin(Math.sqrt(h))}return d}
+function nearestMt(c){const m=c[Math.floor(c.length/2)];let best=null,bd=1e9;MT.forEach(x=>{const d=(x[1]-m[0])**2+(x[2]-m[1])**2;if(d<bd){bd=d;best=x[0]}});return best}
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+$('#fMt').innerHTML=MT.map(m=>`<option>${m[0]}</option>`).join('')+'<option>Друга</option>';
+
+function drawRoute(r){
+  const l=L.polyline(r.coords,{className:'rt',weight:4,opacity:.9}).addTo(map);
+  l.on('click',()=>{if(!drawing)select(r.id)});
+  layers[r.id]=l;
+}
+function style(){Object.keys(layers).forEach(id=>{const on=id===sel;layers[id].setStyle({weight:on?7:4});const el=layers[id].getElement();if(el)el.classList.toggle('sel',on);if(on)layers[id].bringToFront()})}
+function select(id){
+  sel=id;confirmDel=null;style();render();
+  const l=layers[id];if(l)map.fitBounds(l.getBounds(),{maxZoom:12,padding:[40,40]});
+}
+function render(){
+  const pend=routes.filter(r=>!fileIds.has(r.id)).length+deleted.length;
+  $('#pend').classList.toggle('hidden',!pend);
+  $('#pend').textContent=`Има ${pend} промени, които още не са в хранилището. Отвори „Данни“, копирай текста и го постави в routes.geojson.`;
+  const total=routes.reduce((s,r)=>s+km(r.coords),0);
+  $('#stats').textContent=routes.length?`${routes.length} маршрута · ${total.toFixed(0)} км`:'Още няма маршрути';
+  const sorted=[...routes].sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  $('#list').innerHTML=sorted.length?sorted.map(r=>{
+    const d=r.date?new Date(r.date).toLocaleDateString('bg-BG'):'без дата';
+    const on=r.id===sel;
+    return `<div class="item${on?' on':''}" data-id="${r.id}"><b>${esc(r.name||'Без име')}</b><span class="meta">${esc(r.mountain||'')}${r.mountain?' · ':''}${d} · ${km(r.coords).toFixed(1)} км${fileIds.has(r.id)?'':' · ново'}</span>`+
+    (on?`${r.notes?`<div class="notes">${esc(r.notes)}</div>`:''}<div class="row"><button class="sm" data-del="${r.id}">${confirmDel===r.id?'Потвърди изтриването':'Изтрий'}</button></div>`:'')+`</div>`;
+  }).join(''):'<p class="meta">Натисни „Нов маршрут“ и очертай първия си преход.</p>';
+}
+$('#list').onclick=e=>{
+  const del=e.target.closest('[data-del]');
+  if(del){const id=del.dataset.del;
+    if(confirmDel===id){map.removeLayer(layers[id]);delete layers[id];routes=routes.filter(r=>r.id!==id);if(fileIds.has(id)&&!deleted.includes(id))deleted.push(id);sel=null;confirmDel=null;save()}else confirmDel=id;
+    render();return}
+  const it=e.target.closest('.item');if(it)select(it.dataset.id);
+};
+
+function show(which){['idle','drawing','form'].forEach(k=>$('#'+k).classList.toggle('hidden',k!==which))}
+function renderPrev(){
+  prev.clearLayers();
+  if(pts.length>1)L.polyline(pts,{className:'rt',weight:4,dashArray:'6 6',interactive:false}).addTo(prev);
+  pts.forEach(p=>L.circleMarker(p,{radius:4,className:'dot',interactive:false}).addTo(prev));
+  $('#dist').textContent=km(pts).toFixed(1);
+}
+$('#bNew').onclick=()=>{drawing=true;pts=[];sel=null;style();render();renderPrev();$('#err').classList.add('hidden');$('#map').style.cursor='crosshair';show('drawing')};
+map.on('click',e=>{if(!drawing)return;pts.push([+e.latlng.lat.toFixed(5),+e.latlng.lng.toFixed(5)]);renderPrev();$('#err').classList.add('hidden')});
+$('#bUndo').onclick=()=>{pts.pop();renderPrev()};
+function stopDraw(){drawing=false;$('#map').style.cursor='';}
+$('#bCancel').onclick=()=>{stopDraw();pts=[];renderPrev();show('idle')};
+$('#bDone').onclick=()=>{
+  if(pts.length<2){$('#err').classList.remove('hidden');return}
+  stopDraw();$('#fName').value='';$('#fNotes').value='';$('#fDate').value='';$('#fMt').value=nearestMt(pts);show('form');
+};
+$('#bDiscard').onclick=()=>{pts=[];renderPrev();show('idle')};
+$('#bSave').onclick=()=>{
+  const r={id:Date.now().toString(36),name:$('#fName').value.trim(),mountain:$('#fMt').value,date:$('#fDate').value,notes:$('#fNotes').value.trim(),coords:pts};
+  routes.push(r);save();drawRoute(r);pts=[];renderPrev();show('idle');select(r.id);
+};
+
+$('#bGpx').onclick=()=>$('#gpx').click();
+$('#gpx').onchange=e=>{
+  const f=e.target.files[0];if(!f)return;
+  const rd=new FileReader();
+  rd.onload=()=>{
+    const x=new DOMParser().parseFromString(rd.result,'application/xml');
+    let last=null;
+    x.querySelectorAll('trk').forEach(t=>{
+      let c=[...t.querySelectorAll('trkpt')].map(p=>[+(+p.getAttribute('lat')).toFixed(5),+(+p.getAttribute('lon')).toFixed(5)]);
+      if(c.length<2)return;
+      const step=Math.ceil(c.length/600);if(step>1)c=c.filter((_,i)=>i%step===0||i===c.length-1);
+      const tm=t.querySelector('time')||x.querySelector('metadata time');
+      const r={id:Date.now().toString(36)+Math.random().toString(36).slice(2,5),name:(t.querySelector('name')||{}).textContent||f.name.replace(/\.gpx$/i,''),mountain:nearestMt(c),date:tm?tm.textContent.slice(0,10):'',notes:'',coords:c};
+      routes.push(r);drawRoute(r);last=r;
+    });
+    save();if(last)select(last.id);else render();
+    e.target.value='';
+  };
+  rd.readAsText(f);
+};
+
+const toGeo=()=>JSON.stringify({type:'FeatureCollection',features:routes.map(r=>({type:'Feature',properties:{id:r.id,name:r.name,mountain:r.mountain,date:r.date,notes:r.notes},geometry:{type:'LineString',coordinates:r.coords.map(p=>[p[1],p[0]])}}))});
+$('#bExp').onclick=()=>{$('#data').value=toGeo();$('#dmsg').textContent='Копирай текста и го постави в routes.geojson.'};
+$('#bCopy').onclick=async()=>{
+  $('#data').value=toGeo();$('#data').select();
+  try{await navigator.clipboard.writeText($('#data').value);$('#dmsg').textContent='Копирано.'}catch(e){$('#dmsg').textContent='Маркирах текста – копирай го с Ctrl/⌘+C.'}
+};
+$('#bImp').onclick=()=>{
+  try{
+    const g=JSON.parse($('#data').value);let n=0;
+    g.features.forEach(f=>{if(f.geometry&&f.geometry.type==='LineString'){
+      const p=f.properties||{};if(p.id&&routes.some(x=>x.id===p.id))return;const r={id:p.id||Date.now().toString(36)+Math.random().toString(36).slice(2,5),name:p.name||'',mountain:p.mountain||'',date:p.date||'',notes:p.notes||'',coords:f.geometry.coordinates.map(c=>[c[1],c[0]])};
+      routes.push(r);drawRoute(r);n++}});
+    save();render();$('#dmsg').textContent=`Заредени маршрути: ${n}.`;
+  }catch(e){$('#dmsg').textContent='Текстът не е валиден GeoJSON.'}
+};
+
+(async()=>{
+  let fr=[];
+  try{
+    const res=await fetch('routes.geojson?'+Date.now());const g=await res.json();
+    fr=g.features.filter(f=>f.geometry&&f.geometry.type==='LineString').map((f,i)=>{const p=f.properties||{};return{id:p.id||('f'+i),name:p.name||'',mountain:p.mountain||'',date:p.date||'',notes:p.notes||'',coords:f.geometry.coordinates.map(c=>[c[1],c[0]])}});
+  }catch(e){}
+  fileIds=new Set(fr.map(r=>r.id));
+  deleted=ld('bgdeleted').filter(id=>fileIds.has(id));
+  const drafts=ld('bgdrafts').filter(r=>!fileIds.has(r.id));
+  routes=fr.filter(r=>!deleted.includes(r.id)).concat(drafts);
+  routes.forEach(drawRoute);render();
+})();
+</script>
+</body>
+</html>
