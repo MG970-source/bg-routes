@@ -100,10 +100,8 @@ details[open]>summary::after{transform:rotate(-135deg)}
 .parea{fill:var(--route);fill-opacity:.18}.pline{fill:none;stroke:var(--route);stroke-width:2;vector-effect:non-scaling-stroke;stroke-linejoin:round}
 .pst{stroke:var(--mute);stroke-dasharray:2 3;stroke-width:1}.prof text{font-size:9px;fill:var(--mute)}.pcur{stroke:var(--ink);stroke-width:1}
 .proftip{min-height:20px}
-.tabs{display:flex;gap:4px;margin:14px 0 6px;padding:3px;background:var(--bg);border-radius:12px}.tabs button{flex:1;min-height:34px;padding:4px 6px;border:0;background:transparent;font-size:13px;border-radius:9px}.tabs button:hover{background:var(--soft)}.tabs button[aria-selected=true]{background:var(--panel);box-shadow:0 1px 3px rgba(20,40,59,.2);font-weight:600}
+.tabs{display:flex;gap:4px;margin:10px 0 0;padding:3px;background:var(--bg);border-radius:12px}.tabs button{flex:1;min-height:34px;padding:4px 6px;border:0;background:transparent;font-size:13px;border-radius:9px}.tabs button:hover{background:var(--soft)}.tabs button[aria-selected=true]{background:var(--panel);box-shadow:0 1px 3px rgba(20,40,59,.2);font-weight:600}
 [data-pane]>details:first-child{margin-top:4px}
-#mapyAttr{position:absolute;right:12px;bottom:12px;z-index:1000;display:flex;align-items:center;gap:8px;background:var(--glass);border-radius:10px;padding:4px 10px;box-shadow:var(--shadow);font-size:12px}#mapyAttr img{height:30px;display:block}#mapyAttr a{color:var(--ink)}
-@media (max-width:760px){#mapyAttr{bottom:auto;top:12px;right:auto;left:12px}}
 .mapbar{position:absolute;top:12px;left:396px;right:70px;z-index:1000;display:flex;flex-wrap:wrap;gap:6px;pointer-events:none}
 .mapbar button{pointer-events:auto;min-height:38px;padding:6px 14px;border-radius:12px;background:var(--glass);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);box-shadow:var(--shadow);font-weight:500}
 .mapbar button[aria-pressed=true]{background:var(--acc);color:var(--accink);border-color:var(--acc);font-weight:600}
@@ -111,8 +109,8 @@ details[open]>summary::after{transform:rotate(-135deg)}
 .leaflet-control{position:relative;z-index:800;pointer-events:auto;float:left;clear:both}.leaflet-right .leaflet-control{float:right;margin-right:12px}.leaflet-bottom .leaflet-control{margin-bottom:12px}
 .leaflet-control-scale-line{border:2px solid var(--ink);border-top:0;padding:1px 8px;background:var(--glass);color:var(--ink);font-size:11px;font-weight:600;white-space:nowrap;border-radius:0 0 4px 4px}
 .rb{transform:translate(-50%,-125%);background:var(--panel);color:var(--ink);border:2px solid var(--route);border-radius:10px;padding:3px 9px;text-align:center;white-space:nowrap;box-shadow:var(--shadow);font-size:12px;line-height:1.25;pointer-events:none}.rb b{display:block;font-size:14px}
-@media (max-width:760px){.mapbar{left:12px;right:68px}.leaflet-control-scale{display:none}#mapyAttr{top:58px}}
-@media (min-width:761px){#mapyAttr{bottom:52px}}
+@media (max-width:760px){.mapbar{left:12px;right:68px}.leaflet-control-scale{display:none}}
+.ih{display:flex;gap:8px;align-items:flex-start;justify-content:space-between}.ih b{flex:1}.ih button{flex:none}.formhd{font-weight:600;margin:12px 0 0}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 /* минимален Leaflet CSS */
 .leaflet-pane,.leaflet-tile,.leaflet-marker-icon,.leaflet-tile-container,.leaflet-pane>svg,.leaflet-layer{position:absolute;left:0;top:0}
@@ -136,12 +134,17 @@ details[open]>summary::after{transform:rotate(-135deg)}
 </head>
 <body>
 <main>
-  <div id="map"><div class="mapbar" id="mapbar" role="group" aria-label="Смяна на картата"></div><div id="mapyAttr" class="hidden"><a href="https://mapy.com/" target="_blank" rel="noopener"><img src="https://api.mapy.com/img/api/logo.svg" alt="Mapy.com"></a><a href="https://api.mapy.com/copyright" target="_blank" rel="noopener">Seznam.cz a.s. and others</a></div><div class="zoom"><button id="zi" aria-label="Приближи">+</button><button id="zo" aria-label="Отдалечи">−</button><button id="zc" aria-label="Върни картата в центъра" title="Върни картата в центъра и махни избора"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="8"/><path d="M12 1v3M12 20v3M1 12h3M20 12h3"/></svg></button><button id="zh" aria-label="Ръчка: движи картата без да слагаш точки" title="Ръчка: движи картата без да слагаш точки"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v18M3 12h18M12 3l-3 3M12 3l3 3M12 21l-3-3M12 21l3-3M3 12l3-3M3 12l3 3M21 12l-3-3M21 12l-3 3"/></svg></button></div></div>
+  <div id="map"><div class="mapbar" id="mapbar" role="group" aria-label="Смяна на картата"></div><div class="zoom"><button id="zi" aria-label="Приближи">+</button><button id="zo" aria-label="Отдалечи">−</button><button id="zc" aria-label="Върни картата в центъра" title="Върни картата в центъра и махни избора"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="8"/><path d="M12 1v3M12 20v3M1 12h3M20 12h3"/></svg></button><button id="zh" aria-label="Ръчка: движи картата без да слагаш точки" title="Ръчка: движи картата без да слагаш точки"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v18M3 12h18M12 3l-3 3M12 3l3 3M12 21l-3-3M12 21l3-3M3 12l3-3M3 12l3 3M21 12l-3-3M21 12l-3 3"/></svg></button></div></div>
   <aside data-s="full">
     <div class="head">
       <button class="grab" id="sheetH" aria-label="Покажи или скрий панела"><i></i></button>
       <div class="ttl"><h1>Моите маршрути</h1><div id="stats"></div></div>
     <div class="sr"><input id="q" type="search" placeholder="Търси връх, хижа или място…" autocomplete="off"><div id="res" class="hidden"></div></div>
+    <div class="tabs" role="tablist" aria-label="Раздели">
+      <button type="button" role="tab" data-tab="routes" aria-selected="false">Маршрути <span id="rcount"></span></button>
+      <button type="button" role="tab" data-tab="places" aria-selected="false">Планини и паркове</button>
+      <button type="button" role="tab" data-tab="set" aria-selected="false">Настройки</button>
+    </div>
     </div>
     <div class="body">
 
@@ -159,18 +162,15 @@ details[open]>summary::after{transform:rotate(-135deg)}
       <div class="hint hidden" id="err">Постави поне две точки.</div>
     </div>
     <div id="form" class="hidden">
+      <div class="formhd" id="formHd"></div>
       <label>Име<input id="fName" placeholder="напр. Рилски езера – Мальовица"></label>
       <label>Планина<select id="fMt"></select></label>
       <label>Дата<input id="fDate" type="date"></label>
       <label>Бележки<textarea id="fNotes" placeholder="Време, хижи, впечатления…"></textarea></label>
-      <div class="row"><button class="pri" id="bSave">Запази</button><button id="bDiscard">Отхвърли</button></div>
+      <div class="row"><button class="pri" id="bSave">Запази</button><button id="bDiscard">Откажи</button></div>
+      <div class="row hidden" id="editMore"><button class="sm" id="bGeoEdit">Промени трасето</button><button class="sm" id="bPlanEdit">Промени спирките</button></div>
     </div>
     <div class="hint hidden" id="pend"></div>
-    <div class="tabs" role="tablist" aria-label="Раздели">
-      <button type="button" role="tab" data-tab="routes" aria-selected="false">Маршрути <span id="rcount"></span></button>
-      <button type="button" role="tab" data-tab="places" aria-selected="false">Планини и паркове</button>
-      <button type="button" role="tab" data-tab="set" aria-selected="false">Настройки</button>
-    </div>
     <section data-pane="routes" class="hidden">
     <div class="row flt"><select id="fColor" aria-label="Цвят на маршрутите"><option value="one">Един цвят</option><option value="year">Цвят по година</option><option value="mt">Цвят по планина</option></select><select id="fYear" aria-label="Година"></select><select id="fMt2" aria-label="Планина"></select></div>
     <div class="legend" id="legend"></div>
@@ -188,11 +188,7 @@ details[open]>summary::after{transform:rotate(-135deg)}
     </details>
     </section>
     <section data-pane="set" class="hidden">
-    <details class="lay"><summary>Фон и слоеве</summary>
-    <label>Фон на картата<select id="bmap"><option value="topo">Планински (топографски)</option><option value="esri">Релеф и пътища (Esri)</option><option value="sat">Сателит</option><option value="osm">Улици (OSM)</option><option value="mapy_outdoor">Mapy.com – туристическа (с ключ)</option><option value="mapy_winter">Mapy.com – зимна (с ключ)</option><option value="mapy_basic">Mapy.com – основна (с ключ)</option></select></label>
-    <div id="mapyBox" class="hidden"><label>Ключ за Mapy.com<input id="mapyKey" type="password" placeholder="Ключ от developer.mapy.com" autocomplete="off"></label>
-      <div class="row"><button class="pri sm" id="mapySave">Запази ключа</button><button class="sm" id="mapyClear">Изтрий ключа</button></div></div>
-    <div class="meta" id="mapyMsg"></div>
+    <details class="lay"><summary>Слоеве на картата</summary>
     <label class="meta" style="display:flex;gap:6px;align-items:center;margin:8px 0 2px"><input type="checkbox" id="trl" checked style="width:auto">Маркирани пътеки на картата</label>
     <label class="meta" style="display:flex;gap:6px;align-items:center;margin:2px 0 8px"><input type="checkbox" id="dim" style="width:auto">Приглушен фон – маршрутите изпъкват</label>
     <label class="meta" style="display:flex;gap:6px;align-items:center;margin:2px 0 8px"><input type="checkbox" id="mtn" checked style="width:auto">Планините със схематични граници</label>
@@ -236,37 +232,14 @@ const BASE={
   osm:L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19})
 };
 let base=BASE.esri.addTo(map),curBase='esri';
-let mk='';try{mk=localStorage.getItem('bgmapy')||''}catch(e){}
-let mErr=0;
-function mapyLayer(set){
-  const l=L.tileLayer('https://api.mapy.cz/v1/maptiles/'+set+'/256/{z}/{x}/{y}?apikey='+encodeURIComponent(mk),{maxZoom:19,maxNativeZoom:18});
-  l.on('tileload',()=>{mErr=0;$('#mapyMsg').textContent=''});
-  l.on('tileerror',()=>{if(++mErr===4)$('#mapyMsg').textContent='Mapy.com не върна карта. Провери ключа и че е от проект на developer.mapy.com. Ако продължи, върни се на друг фон.'});
-  return l;
-}
-function setBase(v){
-  curBase=v;$('#bmap').value=v;
-  const isM=v.startsWith('mapy_');
-  $('#mapyBox').classList.toggle('hidden',!isM);
-  $('#mapyAttr').classList.toggle('hidden',!isM);
-  $('#mapyMsg').textContent='';mErr=0;
-  map.removeLayer(base);
-  if(isM&&!mk){$('#mapyMsg').textContent='Въведи ключа от Mapy.com. Дотогава е показан топографският фон.';base=BASE.topo.addTo(map);return}
-  base=(isM?mapyLayer(v.slice(5)):BASE[v]).addTo(map);
-  if(isM&&$('#dim').checked){$('#dim').checked=false;$('#map').classList.remove('dim')}
-  renderBar();
-}
-$('#bmap').onchange=e=>setBase(e.target.value);
+function setBase(v){curBase=v;map.removeLayer(base);base=BASE[v].addTo(map);renderBar()}
 function renderBar(){
-  const L1=[['esri','Туристическа'],['topo','Хоризонтали'],['sat','Въздушна'],['osm','Улици']];
-  if(mk)L1.push(['mapy_outdoor','Mapy']);
-  $('#mapbar').innerHTML=L1.map(([v,t])=>`<button type="button" data-b="${v}" aria-pressed="${curBase===v||(v==='mapy_outdoor'&&curBase.startsWith('mapy_'))}">${t}</button>`).join('');
+  const L1=[['esri','Карта'],['sat','Сателит'],['osm','Улици']];
+  $('#mapbar').innerHTML=L1.map(([v,t])=>`<button type="button" data-b="${v}" aria-pressed="${curBase===v}">${t}</button>`).join('');
 }
 $('#mapbar').onclick=e=>{const b=e.target.closest('[data-b]');if(b)setBase(b.dataset.b)};
-$('#bmap').value='esri';renderBar();
+renderBar();
 L.control.scale({position:'bottomright',imperial:false,maxWidth:130}).addTo(map);
-$('#mapySave').onclick=()=>{const k=$('#mapyKey').value.trim();if(!k){$('#mapyMsg').textContent='Постави ключа.';return}mk=k;try{localStorage.setItem('bgmapy',mk)}catch(e){}$('#mapyKey').value='';setBase($('#bmap').value)};
-$('#mapyClear').onclick=()=>{mk='';try{localStorage.removeItem('bgmapy')}catch(e){}$('#mapyMsg').textContent='Ключът е изтрит от този браузър.';setBase($('#bmap').value)};
 $('#dim').onchange=e=>$('#map').classList.toggle('dim',e.target.checked);
 const trails=L.tileLayer('https://tile.waymarkedtrails.org/hiking/{z}/{x}/{y}.png',{maxZoom:18,opacity:.85,pane:'trp'}).addTo(map);
 $('#trl').onchange=e=>e.target.checked?trails.addTo(map):map.removeLayer(trails);
@@ -301,15 +274,15 @@ function select(id){
 function render(){
   const pend=routes.filter(r=>!fileIds.has(r.id)).length+deleted.length+routes.filter(r=>r._mod).length;
   $('#pend').classList.toggle('hidden',!pend);
-  $('#pend').textContent=gh&&gh.tok?`Има ${pend} промени, които се записват в GitHub.`:`Има ${pend} промени, които още не са в хранилището. Отвори „Архив в GitHub“, копирай текста и го постави в routes.geojson.`;
+  $('#pend').textContent=gh&&gh.tok?(pend===1?'Има 1 промяна, която се записва в GitHub.':`Има ${pend} промени, които се записват в GitHub.`):(pend===1?'Има 1 промяна, която още не е в хранилището.':`Има ${pend} промени, които още не са в хранилището.`)+' Отвори „Настройки“ → „Архив в GitHub“, копирай текста и го постави в routes.geojson.';
   updateFilters();updateMt();showStops();const total=routes.reduce((s,r)=>s+km(r.coords),0);
   $('#rcount').textContent=routes.length?'('+routes.length+')':'';$('#stats').innerHTML=routes.length?`<b>${routes.length}</b>${routes.length===1?'маршрут':'маршрута'}<b>${total.toFixed(0)}</b>км`:'Още няма маршрути';
   const sorted=routes.filter(visible).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
   $('#list').innerHTML=sorted.length?sorted.map(r=>{
     const d=r.date?new Date(r.date).toLocaleDateString('bg-BG'):'без дата';
     const on=r.id===sel;
-    return `<div class="item${on?' on':''}" data-id="${r.id}"${!on&&colorFor(r)?` style="border-left-color:${colorFor(r)}"`:''}><b>${esc(r.name||'Без име')}</b><span class="meta">${esc(r.mountain||'')}${r.mountain?' · ':''}${d} · ${km(r.coords).toFixed(1)} км${fileIds.has(r.id)?(r._mod?' · променен':''):' · ново'}</span>`+
-    (on?`${routeInfo(r)}${r.notes?`<div class="notes">${esc(r.notes)}</div>`:''}<div class="row"><button class="sm" data-edit="${r.id}">Данни</button><button class="sm" data-geo="${r.id}">Трасе</button>${r.plan?`<button class="sm" data-plan="${r.id}">Спирки</button>`:''}<button class="sm" data-del="${r.id}">${confirmDel===r.id?'Потвърди изтриването':'Изтрий'}</button></div>`:'')+`</div>`;
+    return `<div class="item${on?' on':''}" data-id="${r.id}"${!on&&colorFor(r)?` style="border-left-color:${colorFor(r)}"`:''}><div class="ih"><b>${esc(r.name||'Без име')}</b><button type="button" class="sm" data-edit="${r.id}">Редактирай</button></div><span class="meta">${esc(r.mountain||'')}${r.mountain?' · ':''}${d} · ${km(r.coords).toFixed(1)} км${fileIds.has(r.id)?(r._mod?' · променен':''):' · ново'}</span>`+
+    (on?`${routeInfo(r)}${r.notes?`<div class="notes">${esc(r.notes)}</div>`:''}<div class="row"><button class="sm" data-del="${r.id}">${confirmDel===r.id?'Потвърди изтриването':'Изтрий'}</button></div>`:'')+`</div>`;
   }).join(''):routes.length?'<p class="meta">Няма маршрути по този филтър.</p>':'<p class="meta">Натисни „Нов маршрут“ и очертай първия си преход.</p>';
 }
 $('#list').onclick=e=>{
@@ -323,7 +296,13 @@ $('#list').onclick=e=>{
   const it=e.target.closest('.item');if(it&&!e.target.closest('.rinf'))select(it.dataset.id);
 };
 
-function show(which){['idle','drawing','form'].forEach(k=>$('#'+k).classList.toggle('hidden',k!==which))}
+function show(which){
+  ['idle','drawing','form'].forEach(k=>$('#'+k).classList.toggle('hidden',k!==which));
+  const onlyMeta=which==='form'&&editId&&!pts.length,er=editId?routes.find(x=>x.id===editId):null;
+  $('#editMore').classList.toggle('hidden',!onlyMeta);
+  $('#bPlanEdit').classList.toggle('hidden',!(er&&er.plan));
+  $('#formHd').textContent=onlyMeta?'Редактиране на маршрут':editId?'Запис на промените':'Нов маршрут';
+}
 function renderPrev(){
   prev.clearLayers();
   if(pts.length>1)L.polyline(pts,{className:'rt',weight:4,dashArray:'6 6',interactive:false}).addTo(prev);
@@ -639,10 +618,20 @@ $('#pClear').onclick=()=>{P=[];planEditId=null;planning=false;pick=false;cur();r
 $('#pSwap').onclick=()=>{P.reverse();replan()};
 $('#pPick').onclick=()=>{pick=!pick;if(pick)setHand(false);cur();renderPlan()};
 function editMeta(id){
+  if(sel!==id)select(id);
   const r=routes.find(x=>x.id===id);editId=id;pts=[];pendingPlan=null;
   $('#fName').value=r.name;$('#fMt').value=[...$('#fMt').options].some(o=>o.value===r.mountain)?r.mountain:'Друга';$('#fDate').value=r.date||'';$('#fNotes').value=r.notes||'';
   show('form');
+  const bd=document.querySelector('.body');if(bd)bd.scrollTop=0;
+  const a=document.querySelector('aside');if(a.dataset.s==='peek')setSheet(innerWidth<=760?'mid':'full');
 }
+function applyForm(){
+  const r=routes.find(x=>x.id===editId);if(!r)return null;
+  r.name=$('#fName').value.trim();r.mountain=$('#fMt').value;r.date=$('#fDate').value;r.notes=$('#fNotes').value.trim();
+  if(fileIds.has(r.id))r._mod=true;save();render();return r;
+}
+$('#bGeoEdit').onclick=()=>{const r=applyForm();if(r)editGeo(r.id)};
+$('#bPlanEdit').onclick=()=>{const r=applyForm();if(r){show('idle');editPlan(r.id)}};
 function editGeo(id){
   const r=routes.find(x=>x.id===id);editId=id;pendingPlan=null;setHand(false);drawing=true;
   pts=r.coords.map(p=>p.slice());layers[id].setStyle({opacity:.25});casings[id].setStyle({opacity:.15});
@@ -715,8 +704,8 @@ const visible=r=>(!fy||yearOf(r)===fy)&&(!fm||mtOf(r)===fm);
 function updateFilters(){
   const ys=uniq(yearOf),ms=uniq(mtOf);
   if(fy&&!ys.includes(fy))fy='';if(fm&&!ms.includes(fm))fm='';
-  $('#fYear').innerHTML='<option value="">Всички години</option>'+ys.map(y=>`<option${y===fy?' selected':''}>${esc(y)}</option>`).join('');
-  $('#fMt2').innerHTML='<option value="">Всички планини</option>'+ms.map(m=>`<option${m===fm?' selected':''}>${esc(m)}</option>`).join('');
+  $('#fYear').innerHTML='<option value="">Години</option>'+ys.map(y=>`<option${y===fy?' selected':''}>${esc(y)}</option>`).join('');
+  $('#fMt2').innerHTML='<option value="">Планини</option>'+ms.map(m=>`<option${m===fm?' selected':''}>${esc(m)}</option>`).join('');
   const keys=fc==='year'?ys:fc==='mt'?ms:[];
   $('#legend').innerHTML=keys.map((k,i)=>`<span><i style="background:${PAL[i%PAL.length]}"></i>${esc(k)}</span>`).join('');
 }
