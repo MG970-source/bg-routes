@@ -113,6 +113,7 @@ details[open]>summary::after{transform:rotate(-135deg)}
 @media (max-width:760px){.mapbar{left:12px;right:68px}.leaflet-control-scale{display:none}}
 .ih{display:flex;gap:8px;align-items:flex-start;justify-content:space-between}.ih b{flex:1}.ih button{flex:none}.formhd{font-weight:600;margin:12px 0 0}
 .pr b{width:22px;flex:none}.pr input{flex:1;min-height:36px;padding:6px 10px}
+.chk{display:flex;gap:8px;padding:7px 0;border-top:1px solid var(--line);align-items:flex-start}.chk i{flex:none;width:10px;height:10px;border-radius:50%;margin-top:6px}.chk .ok{background:#16a34a}.chk .wn{background:#d97706}.chk .fl{background:#dc2626}.chk div{flex:1;min-width:0}.chk b{display:block}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 /* минимален Leaflet CSS */
 .leaflet-pane,.leaflet-tile,.leaflet-marker-icon,.leaflet-tile-container,.leaflet-pane>svg,.leaflet-layer{position:absolute;left:0;top:0}
@@ -198,6 +199,11 @@ details[open]>summary::after{transform:rotate(-135deg)}
     <label class="meta" style="display:flex;gap:6px;align-items:center;margin:2px 0 8px"><input type="checkbox" id="dim" style="width:auto">Приглушен фон – маршрутите изпъкват</label>
     <label class="meta" style="display:flex;gap:6px;align-items:center;margin:2px 0 8px"><input type="checkbox" id="mtn" checked style="width:auto">Планините със схематични граници</label>
     <label class="meta" style="display:flex;gap:6px;align-items:center;margin:2px 0 8px"><input type="checkbox" id="pkc" checked style="width:auto">Национални и природни паркове</label>
+    </details>
+    <details><summary>Проверка на страницата</summary>
+      <p class="note" style="margin-top:0">Проверява дали работят картата, търсачката, маршрутите, границите и записът в GitHub. Не променя нищо.</p>
+      <div class="row"><button class="pri sm" id="chkRun">Пусни проверката</button><button class="sm hidden" id="chkCopy">Копирай резултата</button></div>
+      <div id="chkOut" aria-live="polite"></div>
     </details>
     <details><summary>Архив в GitHub</summary>
       <p class="note" style="margin-top:0">Ако въведеш ключ, всяка промяна се записва сама в routes.geojson в GitHub. Ключът остава само в този браузър.</p>
@@ -776,6 +782,48 @@ function setTab(t){
   if(t&&a.dataset.s==='peek')setSheet(innerWidth<=760?'mid':'full');
 }
 document.querySelectorAll('.tabs [data-tab]').forEach(b=>b.onclick=()=>setTab(curTab===b.dataset.tab?'':b.dataset.tab));
+
+/* ---- проверка на страницата ---- */
+const tmo=(p,ms)=>Promise.race([p,new Promise((_,rj)=>setTimeout(()=>rj(new Error('няма отговор за '+ms/1000+' сек')),ms))]);
+const tileUrl=(u,z,lat,lon)=>{const n=2**z,x=Math.floor((lon+180)/360*n),y=Math.floor((1-Math.log(Math.tan(lat*Math.PI/180)+1/Math.cos(lat*Math.PI/180))/Math.PI)/2*n);return u.replace('{z}',z).replace('{x}',x).replace('{y}',y)};
+const imgOk=u=>new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i.naturalWidth+'×'+i.naturalHeight);i.onerror=()=>rej(new Error('плочката не се зареди'));i.src=u});
+async function runChecks(){
+  const R=[],add=(st,t,d)=>R.push({st,t,d:d||''});
+  // тези проверки не ползват мрежата
+  add(typeof L!=='undefined'&&L.version?'ok':'fl','Библиотека за картата',typeof L!=='undefined'&&L.version?'Leaflet '+L.version:'не е заредена');
+  add('ok','Устройство',innerWidth+'×'+innerHeight+' px, '+(innerWidth<=760?'телефон':'компютър'));
+  try{localStorage.setItem('bgchk','1');localStorage.removeItem('bgchk');add('ok','Памет на браузъра','работи')}catch(e){add('wn','Памет на браузъра','не е достъпна (режим „инкогнито“?) – незаписаните промени не се пазят')}
+  const eleN=routes.filter(r=>hasEle(r.coords)).length,pend=routes.filter(r=>!fileIds.has(r.id)||r._mod).length+deleted.length;
+  add(loadedOK?'ok':'fl','Маршрути от routes.geojson',loadedOK?routes.length+' общо, '+eleN+' с височини':'файлът не се зареди – записът в GitHub е спрян');
+  add(pend?'wn':'ok','Незаписани промени',pend?pend+' (още не са в хранилището)':'няма');
+  const realN=MP.filter(m=>m.real).length;
+  add(realN?'ok':'wn','Граници на планини',realN+' от '+MP.length+' с точен контур; парковете са '+PK.length);
+  add('ok','Включени слоеве','фон: '+curBase+', пътеки: '+(map.hasLayer(trails)?'да':'не')+', планини: '+(map.hasLayer(mtG)?'да':'не')+', паркове: '+(map.hasLayer(pkG)?'да':'не'));
+  // мрежови проверки
+  const lat=42.18,lon=23.59,net=[
+    ['Фон „Карта“',()=>imgOk(tileUrl('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}',10,lat,lon))],
+    ['Фон „Сателит“',()=>imgOk(tileUrl('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',10,lat,lon))],
+    ['Фон „Улици“',()=>imgOk(tileUrl('https://tile.openstreetmap.org/{z}/{x}/{y}.png',10,lat,lon))],
+    ['Маркирани пътеки',()=>imgOk(tileUrl('https://tile.waymarkedtrails.org/hiking/{z}/{x}/{y}.png',10,lat,lon)),'wn'],
+    ['Файл routes.geojson',async()=>{const r=await fetch('routes.geojson?'+Date.now());if(!r.ok)throw new Error('код '+r.status);const g=await r.json();return g.features.length+' маршрута във файла'}],
+    ['Търсачка (Photon)',async()=>{const r=await fetch('https://photon.komoot.io/api/?q='+encodeURIComponent('Мусала')+'&limit=1');if(!r.ok)throw new Error('код '+r.status);const g=await r.json();if(!g.features.length)throw new Error('празен резултат');return 'намери „'+(g.features[0].properties.name||'?')+'“'}],
+    ['Маршрути (BRouter)',async()=>{const r=await fetch('https://brouter.de/brouter?lonlats=24.7076,42.8908|24.7300,42.8700&profile=hiking-mountain&alternativeidx=0&format=geojson');if(!r.ok)throw new Error('код '+r.status);const g=await r.json();return 'пробен маршрут '+Math.round(+g.features[0].properties['track-length']||0)+' м'}]
+  ];
+  if(gh&&gh.tok&&gh.repo)net.push(['Запис в GitHub',async()=>{const r=await fetch('https://api.github.com/repos/'+gh.repo+'/contents/routes.geojson',{headers:{Authorization:'Bearer '+gh.tok,Accept:'application/vnd.github+json'},cache:'no-store'});if(r.status===401||r.status===403)throw new Error('ключът е невалиден, изтекъл или без право (код '+r.status+')');if(r.status===404)throw new Error('не намирам routes.geojson в '+gh.repo);if(!r.ok)throw new Error('код '+r.status);const ex=r.headers.get('github-authentication-token-expiration');return 'ключът работи'+(ex?', важи до '+ex:'')}]);
+  else add('wn','Запис в GitHub','няма въведен ключ – записът е на ръка');
+  const out=await Promise.all(net.map(async([t,f,bad])=>{try{return{st:'ok',t,d:await tmo(f(),9000)}}catch(e){return{st:bad||'fl',t,d:/fetch|Network/i.test(e.message||'')?'няма връзка с услугата (интернет, блокиране или временен срив)':(e.message||String(e))}}}));
+  return R.concat(out);
+}
+let chkText='';
+$('#chkRun').onclick=async()=>{
+  const b=$('#chkRun');b.disabled=true;b.textContent='Проверявам…';$('#chkOut').innerHTML='';
+  let R;try{R=await runChecks()}catch(e){R=[{st:'fl',t:'Проверката се счупи',d:e.message}]}
+  const sym={ok:'ОК',wn:'Внимание',fl:'ГРЕШКА'};
+  $('#chkOut').innerHTML=R.map(x=>`<div class="chk"><i class="${x.st}"></i><div><b>${esc(x.t)}</b><span class="meta">${esc(x.d)}</span></div></div>`).join('');
+  chkText=R.map(x=>`[${sym[x.st]}] ${x.t}: ${x.d}`).join('\n');
+  b.disabled=false;b.textContent='Пусни отново';$('#chkCopy').classList.remove('hidden');
+};
+$('#chkCopy').onclick=async()=>{try{await navigator.clipboard.writeText(chkText);$('#chkCopy').textContent='Копирано'}catch(e){$('#chkCopy').textContent='Не се копира – направи снимка'}setTimeout(()=>$('#chkCopy').textContent='Копирай резултата',2500)};
 
 /* ---- панел ---- */
 const mob=()=>innerWidth<=760;
