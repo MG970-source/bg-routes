@@ -27,6 +27,12 @@ aside[data-s=peek] .body{display:none}
 .grab{position:absolute;top:10px;right:10px;width:34px;height:34px;padding:0;border:0;background:transparent;border-radius:10px;display:grid;place-items:center}
 .grab i{width:9px;height:9px;border-right:2px solid var(--mute);border-bottom:2px solid var(--mute);transform:rotate(-135deg) translate(-2px,-2px);transition:transform .2s}
 aside[data-s=peek] .grab i{transform:rotate(45deg) translate(-2px,-2px)}
+.grab{border:1px solid var(--line);background:var(--bg)}
+.ep{border-radius:50%;border:2px solid #fff;box-sizing:border-box;box-shadow:0 0 0 2.5px var(--c,#c026d3),0 1px 4px rgba(0,0,0,.45)}
+.ep.s{background:#16a34a}.ep.e{background:#111827;border-radius:3px}.ep.b{background:linear-gradient(90deg,#16a34a 50%,#111827 50%)}
+.epw{position:relative}
+.epl{position:absolute;left:100%;top:50%;transform:translateY(-50%);margin-left:9px;white-space:nowrap;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:1px 7px;font-size:12px;font-weight:700;box-shadow:0 1px 4px rgba(0,0,0,.25);pointer-events:none}
+.eleg{display:flex;gap:14px;align-items:center;font-size:12px;color:var(--mute);margin:2px 0 8px}.eleg i{display:inline-block;width:11px;height:11px;border:2px solid #fff;box-shadow:0 0 0 1.5px #64748b;margin-right:6px;vertical-align:-2px;box-sizing:content-box}
 @media (max-width:760px){
   aside{top:auto;left:0;right:0;bottom:0;width:auto;max-height:none;border-radius:22px 22px 0 0;border-bottom:0;padding-bottom:env(safe-area-inset-bottom,0px)}
   aside[data-s=mid]{height:48vh;height:48dvh}
@@ -37,6 +43,11 @@ aside[data-s=peek] .grab i{transform:rotate(45deg) translate(-2px,-2px)}
   .head{padding-top:28px}
   .ttl{margin-right:0}
   .body{border-radius:0}
+  aside[data-s=min] .body,aside[data-s=min] .sr,aside[data-s=min] .tabs{display:none}
+  aside[data-s=min] .head{padding-bottom:10px}
+  aside[data-s=min] .ttl{margin-bottom:0}
+  .grab{height:34px;touch-action:none}
+  .ttl{touch-action:none}
 }
 button,input,select,textarea{font:inherit;color:inherit}
 button{border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:8px 14px;min-height:38px;cursor:pointer;transition:background .15s,border-color .15s}
@@ -140,7 +151,7 @@ details[open]>summary::after{transform:rotate(-135deg)}
   <div id="map"><div class="mapbar" id="mapbar" role="group" aria-label="Смяна на картата"></div><div class="zoom"><button id="zi" aria-label="Приближи">+</button><button id="zo" aria-label="Отдалечи">−</button><button id="zc" aria-label="Върни картата в центъра" title="Върни картата в центъра и махни избора"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="8"/><path d="M12 1v3M12 20v3M1 12h3M20 12h3"/></svg></button><button id="zh" aria-label="Ръчка: движи картата без да слагаш точки" title="Ръчка: движи картата без да слагаш точки"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v18M3 12h18M12 3l-3 3M12 3l3 3M12 21l-3-3M12 21l3-3M3 12l3-3M3 12l3 3M21 12l-3-3M21 12l-3 3"/></svg></button></div></div>
   <aside data-s="full">
     <div class="head">
-      <button class="grab" id="sheetH" aria-label="Покажи или скрий панела"><i></i></button>
+      <button class="grab" id="sheetH" aria-label="Покажи или скрий панела" title="Разгъни / свий списъка"><i></i></button>
       <div class="ttl"><h1>Моите маршрути</h1><div id="stats"></div></div>
     <div class="sr"><input id="q" type="search" placeholder="Търси връх, хижа или място…" autocomplete="off"><div id="res" class="hidden"></div></div>
     <div class="tabs" role="tablist" aria-label="Раздели">
@@ -178,8 +189,9 @@ details[open]>summary::after{transform:rotate(-135deg)}
     </div>
     <div class="hint hidden" id="pend"></div>
     <section data-pane="routes" class="hidden">
-    <div class="row flt"><select id="fColor" aria-label="Цвят на маршрутите"><option value="one">Един цвят</option><option value="year">Цвят по година</option><option value="mt">Цвят по планина</option></select><select id="fYear" aria-label="Година"></select><select id="fMt2" aria-label="Планина"></select></div>
+    <div class="row flt"><select id="fColor" aria-label="Цвят на маршрутите"><option value="each">Всеки маршрут в свой цвят</option><option value="one">Един цвят</option><option value="year">Цвят по година</option><option value="mt">Цвят по планина</option></select><select id="fYear" aria-label="Година"></select><select id="fMt2" aria-label="Планина"></select></div>
     <div class="legend" id="legend"></div>
+    <div class="eleg"><span><i style="background:#16a34a;border-radius:50%"></i>начало</span><span><i style="background:#111827;border-radius:2px"></i>край</span><span>пръстенът е в цвета на маршрута</span></div>
     <div id="list"></div>
     </section>
     <section data-pane="places" class="hidden">
@@ -196,6 +208,7 @@ details[open]>summary::after{transform:rotate(-135deg)}
     <section data-pane="set" class="hidden">
     <details class="lay"><summary>Слоеве на картата</summary>
     <label class="meta" style="display:flex;gap:6px;align-items:center;margin:8px 0 2px"><input type="checkbox" id="trl" checked style="width:auto">Маркирани пътеки на картата</label>
+    <label class="meta" style="display:flex;gap:6px;align-items:center;margin:2px 0 8px"><input type="checkbox" id="epc" checked style="width:auto">Начало и край на маршрутите</label>
     <label class="meta" style="display:flex;gap:6px;align-items:center;margin:2px 0 8px"><input type="checkbox" id="dim" style="width:auto">Приглушен фон – маршрутите изпъкват</label>
     <label class="meta" style="display:flex;gap:6px;align-items:center;margin:2px 0 8px"><input type="checkbox" id="mtn" checked style="width:auto">Планините със схематични граници</label>
     <label class="meta" style="display:flex;gap:6px;align-items:center;margin:2px 0 8px"><input type="checkbox" id="pkc" checked style="width:auto">Национални и природни паркове</label>
@@ -280,9 +293,21 @@ function drawRoute(r){
   l.on('click',()=>{if(!drawing&&!pick)select(r.id)});
   layers[r.id]=l;
 }
-function style(){Object.keys(layers).forEach(id=>{const on=id===sel;const W=lineW();layers[id].setStyle({weight:on?W+2:W});if(casings[id])casings[id].setStyle({weight:on?W+cx()+3:W+cx()});const el=layers[id].getElement();if(el){el.classList.toggle('sel',on);const r=routes.find(x=>x.id===id),vis=!r||visible(r);el.style.stroke=on||!r?'':colorFor(r);el.style.display=vis?'':'none';const ce=casings[id]&&casings[id].getElement();if(ce)ce.style.display=vis?'':'none'}if(on)layers[id].bringToFront()})}
+const epG=L.layerGroup().addTo(map);
+function updateEnds(){
+  epG.clearLayers();if(!$('#epc').checked)return;
+  const z=map.getZoom();
+  routes.forEach(r=>{
+    const on=r.id===sel;if(!visible(r)||r.coords.length<2||(!on&&z<8))return;
+    const a=r.coords[0],b=r.coords[r.coords.length-1],col=colorFor(r)||'#c026d3',loop=km([a,b])<0.15;
+    const sz=on?22:z>=11?16:12;
+    const mk=(pt,cls,lab)=>L.marker([pt[0],pt[1]],{interactive:on?false:true,keyboard:false,zIndexOffset:on?-400:-900,icon:L.divIcon({className:'epw',iconSize:[sz,sz],iconAnchor:[sz/2,sz/2],html:`<div class="ep ${cls}" style="--c:${col};width:${sz}px;height:${sz}px"></div>${on?`<span class="epl">${lab}</span>`:''}`})}).on('click',()=>{if(!drawing&&!pick)select(r.id)}).addTo(epG);
+    if(loop)mk(a,'b','Начало и край');else{mk(a,'s','Начало');mk(b,'e','Край')}
+  });
+}
+function style(){updateEnds();Object.keys(layers).forEach(id=>{const on=id===sel;const W=lineW();layers[id].setStyle({weight:on?W+2:W});if(casings[id])casings[id].setStyle({weight:on?W+cx()+3:W+cx()});const el=layers[id].getElement();if(el){el.classList.toggle('sel',on);const r=routes.find(x=>x.id===id),vis=!r||visible(r);el.style.stroke=on||!r?'':colorFor(r);el.style.display=vis?'':'none';const ce=casings[id]&&casings[id].getElement();if(ce)ce.style.display=vis?'':'none'}if(on)layers[id].bringToFront()})}
 function select(id){
-  sel=id;confirmDel=null;style();render();setTab('routes');if(innerWidth<=760&&document.querySelector('aside').dataset.s==='peek')setSheet('mid');
+  sel=id;confirmDel=null;style();render();setTab('routes');if(innerWidth<=760&&isLow())setSheet('mid');
   const l=layers[id];if(l)map.fitBounds(l.getBounds(),{maxZoom:12,...fo(false)});
 }
 function render(){
@@ -340,7 +365,7 @@ $('#bSave').onclick=()=>{
   if(r){if(!pts.length)readStops(r);Object.assign(r,f);if(pts.length){r.coords=pts;if(pendingPlan)r.plan=pendingPlan}if(fileIds.has(r.id))r._mod=true;map.removeLayer(layers[r.id]);map.removeLayer(casings[r.id]);drawRoute(r)}
   else{r={id:Date.now().toString(36),...f,coords:pts,plan:pendingPlan};routes.push(r);drawRoute(r)}
   editId=null;pendingPlan=null;save();pts=[];renderPrev();clearPlanner();show('idle');select(r.id);
-  if(innerWidth<=760)setSheet('peek');
+  if(innerWidth<=760)setSheet('min');
 };
 
 $('#bGpx').onclick=()=>$('#gpx').click();
@@ -434,9 +459,10 @@ function updatePk(){
     return `<div class="go" data-pk="${ki}" title="Покажи на картата"><b>${vis?'✓ ':''}${k.n}</b> <span class="meta">${k.t} · ${vis?d.toFixed(0)+' км':'още не е посетен'}</span></div>`;
   }).join('');
 }
-const goTo=m=>{const b=L.latLngBounds((m.rings||[m.pg]).flat());map.fitBounds(b,fo(true));if(innerWidth<=760)setSheet('peek')};
+const goTo=m=>{const b=L.latLngBounds((m.rings||[m.pg]).flat());map.fitBounds(b,fo(true));if(innerWidth<=760)setSheet('min')};
 $('#mlist').onclick=e=>{const r=e.target.closest('[data-mt]');if(r)goTo(MP[+r.dataset.mt])};
 $('#pklist').onclick=e=>{const r=e.target.closest('[data-pk]');if(r)goTo(PK[+r.dataset.pk])};
+$('#epc').onchange=updateEnds;
 $('#pkc').onchange=e=>e.target.checked?pkG.addTo(map):map.removeLayer(pkG);
 const same=(a,b)=>a[0]===b[0]&&a[1]===b[1];
 function joinRings(segs){
@@ -628,7 +654,7 @@ function editMeta(id){
   $('#stopsList').innerHTML=r.plan?r.plan.map((q,i)=>`<div class="pr"><b>${lab(i)}</b><input data-sn="${i}" value="${esc(q.name).replace(/"/g,'&quot;')}" aria-label="Спирка ${lab(i)}"></div>`).join(''):'';
   show('form');
   const bd=document.querySelector('.body');if(bd)bd.scrollTop=0;
-  const a=document.querySelector('aside');if(a.dataset.s==='peek')setSheet(innerWidth<=760?'mid':'full');
+  const a=document.querySelector('aside');if(isLow())setSheet(innerWidth<=760?'mid':'full');
 }
 function readStops(r){
   if(!r||!r.plan)return;
@@ -706,10 +732,12 @@ $('#list').addEventListener('pointerleave',e=>{if(e.target.matches&&e.target.mat
 
 /* ---- цветове и филтри ---- */
 const PAL=['#c026d3','#ea580c','#0891b2','#65a30d','#dc2626','#7c3aed','#0d9488','#ca8a04','#db2777','#2563eb'];
-let fc='one',fy='',fm='';
+let fc='each',fy='',fm='';
+const PAL2=['#e11d48','#2563eb','#f59e0b','#7c3aed','#0891b2','#db2777','#ea580c','#0f766e','#9333ea','#b91c1c','#0369a1','#c026d3'];
+const eachCol=r=>{const i=Math.max(0,routes.indexOf(r));if(i<PAL2.length)return PAL2[i];let h=(i*137.508)%360;if(h>70&&h<170)h+=100;return `hsl(${h%360},72%,44%)`};
 const yearOf=r=>r.date?r.date.slice(0,4):'без дата',mtOf=r=>r.mountain||'—';
 const uniq=f=>[...new Set(routes.map(f))].sort();
-function colorFor(r){if(fc==='year')return PAL[uniq(yearOf).indexOf(yearOf(r))%PAL.length];if(fc==='mt')return PAL[uniq(mtOf).indexOf(mtOf(r))%PAL.length];return''}
+function colorFor(r){if(fc==='each')return eachCol(r);if(fc==='year')return PAL[uniq(yearOf).indexOf(yearOf(r))%PAL.length];if(fc==='mt')return PAL[uniq(mtOf).indexOf(mtOf(r))%PAL.length];return''}
 const visible=r=>(!fy||yearOf(r)===fy)&&(!fm||mtOf(r)===fm);
 function updateFilters(){
   const ys=uniq(yearOf),ms=uniq(mtOf);
@@ -779,7 +807,7 @@ function setTab(t){
   document.querySelectorAll('[data-pane]').forEach(e=>e.classList.toggle('hidden',e.dataset.pane!==t));
   document.querySelectorAll('.tabs [data-tab]').forEach(b=>b.setAttribute('aria-selected',b.dataset.tab===t?'true':'false'));
   const a=document.querySelector('aside');
-  if(t&&a.dataset.s==='peek')setSheet(innerWidth<=760?'mid':'full');
+  if(t&&isLow())setSheet(innerWidth<=760?'mid':'full');
 }
 document.querySelectorAll('.tabs [data-tab]').forEach(b=>b.onclick=()=>setTab(curTab===b.dataset.tab?'':b.dataset.tab));
 
@@ -827,11 +855,22 @@ $('#chkCopy').onclick=async()=>{try{await navigator.clipboard.writeText(chkText)
 
 /* ---- панел ---- */
 const mob=()=>innerWidth<=760;
-function setSheet(v){document.querySelector('aside').dataset.s=v}
-setSheet(mob()?'peek':'full');
-$('#sheetH').onclick=()=>{const s=document.querySelector('aside').dataset.s;setSheet(mob()?(s==='peek'?'mid':s==='mid'?'full':'peek'):(s==='peek'?'full':'peek'))};
-$('#q').addEventListener('focus',()=>{if(mob()&&document.querySelector('aside').dataset.s==='peek')setSheet('mid')});
-['bNew','bPlan'].forEach(id=>$('#'+id).addEventListener('click',()=>{if(document.querySelector('aside').dataset.s==='peek')setSheet(mob()?'mid':'full')}));
+function setSheet(v){document.querySelector('aside').dataset.s=v;if(!mob()){try{localStorage.setItem('bgsheet',v)}catch(e){}}}
+setSheet(mob()?'peek':(()=>{try{return localStorage.getItem('bgsheet')==='full'?'full':'peek'}catch(e){return'peek'}})());
+const isLow=()=>{const s=document.querySelector('aside').dataset.s;return s==='peek'||s==='min'};
+const STEPS=['min','peek','mid','full'];
+let swiped=false;
+$('#sheetH').onclick=()=>{if(swiped){swiped=false;return}const s=document.querySelector('aside').dataset.s;setSheet(mob()?(s==='full'?'min':STEPS[STEPS.indexOf(s)+1]):(s==='peek'?'full':'peek'))};
+/* потегляне нагоре/надолу като в Google Maps */
+(()=>{let y0=null;
+  const st=e=>{if(!mob())return;y0=e.touches[0].clientY};
+  const en=e=>{if(y0===null)return;const dy=e.changedTouches[0].clientY-y0;y0=null;if(Math.abs(dy)<28)return;swiped=true;setTimeout(()=>swiped=false,400);
+    const s=document.querySelector('aside').dataset.s,i=STEPS.indexOf(s);setSheet(STEPS[Math.max(0,Math.min(3,i+(dy<0?1:-1)))])};
+  ['#sheetH','.ttl'].forEach(q=>{const el=document.querySelector(q);el.addEventListener('touchstart',st,{passive:true});el.addEventListener('touchend',en)});
+  document.querySelector('.ttl').addEventListener('click',()=>{if(mob()&&!swiped&&document.querySelector('aside').dataset.s==='min')setSheet('peek')});
+})();
+$('#q').addEventListener('focus',()=>{if(mob()&&isLow())setSheet('mid')});
+['bNew','bPlan'].forEach(id=>$('#'+id).addEventListener('click',()=>{if(isLow())setSheet(mob()?'mid':'full')}));
 
 (async()=>{
   let fr=[];
